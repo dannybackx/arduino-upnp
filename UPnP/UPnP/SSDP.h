@@ -26,8 +26,8 @@ License (MIT license):
 
 */
 
-#ifndef ESP8266SSDP_H
-#define ESP8266SSDP_H
+#ifndef _UPNP_SSDP_H_
+#define _UPNP_SSDP_H_
 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
@@ -60,29 +60,7 @@ class SSDPClass{
     SSDPClass();
     ~SSDPClass();
 
-    bool begin();
-
-    void schema(WiFiClient client);
-
-    void setName(const String& name) { setName(name.c_str()); }
-    void setName(const char *name);
-    void setURL(const String& url) { setURL(url.c_str()); }
-    void setURL(const char *url);
-    void setSchemaURL(const String& url) { setSchemaURL(url.c_str()); }
-    void setSchemaURL(const char *url);
-    void setSerialNumber(const String& serialNumber) { setSerialNumber(serialNumber.c_str()); }
-    void setSerialNumber(const char *serialNumber);
-    void setModelName(const String& name) { setModelName(name.c_str()); }
-    void setModelName(const char *name);
-    void setModelNumber(const String& num) { setModelNumber(num.c_str()); }
-    void setModelNumber(const char *num);
-    void setModelURL(const String& url) { setModelURL(url.c_str()); }
-    void setModelURL(const char *url);
-    void setManufacturer(const String& name) { setManufacturer(name.c_str()); }
-    void setManufacturer(const char *name);
-    void setManufacturerURL(const String& url) { setManufacturerURL(url.c_str()); }
-    void setManufacturerURL(const char *url);
-    void setHTTPPort(uint16_t port);
+    bool begin(UPnPDevice &device);
 
   protected:
     void _send(ssdp_method_t method);
@@ -102,16 +80,19 @@ class SSDPClass{
     unsigned long _notify_time;
     
     uint16_t _port;
-    char _schemaURL[SSDP_SCHEMA_URL_SIZE];
-    char _uuid[SSDP_UUID_SIZE];
-    char _friendlyName[SSDP_FRIENDLY_NAME_SIZE];
-    char _serialNumber[SSDP_SERIAL_NUMBER_SIZE];
-    char _presentationURL[SSDP_PRESENTATION_URL_SIZE];
-    char _manufacturer[SSDP_MANUFACTURER_SIZE];
-    char _manufacturerURL[SSDP_MANUFACTURER_URL_SIZE];
-    char _modelName[SSDP_MODEL_NAME_SIZE];
-    char _modelURL[SSDP_MODEL_URL_SIZE];
-    char _modelNumber[SSDP_MODEL_VERSION_SIZE];
+    //char _schemaURL[SSDP_SCHEMA_URL_SIZE];
+    //char _uuid[SSDP_UUID_SIZE];
+    //char _friendlyName[SSDP_FRIENDLY_NAME_SIZE];
+    //char _serialNumber[SSDP_SERIAL_NUMBER_SIZE];
+    //char _presentationURL[SSDP_PRESENTATION_URL_SIZE];
+    //char _manufacturer[SSDP_MANUFACTURER_SIZE];
+    //char _manufacturerURL[SSDP_MANUFACTURER_URL_SIZE];
+    //char _modelName[SSDP_MODEL_NAME_SIZE];
+    //char _modelURL[SSDP_MODEL_URL_SIZE];
+    //char _modelNumber[SSDP_MODEL_VERSION_SIZE];
+
+  private:
+    UPnPDevice device;
 };
 
 extern SSDPClass SSDP;

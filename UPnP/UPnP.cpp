@@ -1,3 +1,6 @@
+/*
+ *
+ */
 #include "Arduino.h"
 #include "UPnP.h"
 
@@ -20,21 +23,18 @@ extern "C" {
 #include "lwip/mem.h"
 #include "include/UdpContext.h"
 
-int a = 0;
-
 UPnPClass::UPnPClass() {
-	a = 0xdead;
 }
 
 UPnPClass::~UPnPClass() {
 }
 
-void UPnPClass::begin() {
-	Serial.printf("UPnP begin(%x)\n", a);
+void UPnPClass::begin(UPnPDevice &device) {
+	Serial.printf("UPnP begin()\n");
+	d = device;
 }
 
 UPnPClass UPnP;
-/* */
 
 static const char* _ssdp_schema_template = 
   "HTTP/1.1 200 OK\r\n"
@@ -78,55 +78,15 @@ static const char* _ssdp_schema_template =
 void UPnPClass::schema(WiFiClient client) {
   uint32_t ip = WiFi.localIP();
   client.printf(_ssdp_schema_template,
-    IP2STR(&ip), _port,
-    _friendlyName,
-    _presentationURL,
-    _serialNumber,
-    _modelName,
-    _modelNumber,
-    _modelURL,
-    _manufacturer,
-    _manufacturerURL,
-    _uuid
+    IP2STR(&ip), d.getPort(),
+    d.getFriendlyName(),
+    d.getPresentationURL(),
+    d.getSerialNumber(),
+    d.getModelName(),
+    d.getModelNumber(),
+    d.getModelURL(),
+    d.getManufacturer(),
+    d.getManufacturerURL(),
+    d.getUuid()
   );
-}
-
-void UPnPClass::setSchemaURL(const char *url) {
-  strlcpy(_schemaURL, url, sizeof(_schemaURL));
-}
-
-void UPnPClass::setHTTPPort(uint16_t port){
-  _port = port;
-}
-
-void UPnPClass::setName(const char *name){
-  strlcpy(_friendlyName, name, sizeof(_friendlyName));
-}
-
-void UPnPClass::setURL(const char *url){
-  strlcpy(_presentationURL, url, sizeof(_presentationURL));
-}
-
-void UPnPClass::setSerialNumber(const char *serialNumber){
-  strlcpy(_serialNumber, serialNumber, sizeof(_serialNumber));
-}
-
-void UPnPClass::setModelName(const char *name){
-  strlcpy(_modelName, name, sizeof(_modelName));
-}
-
-void UPnPClass::setModelNumber(const char *num){
-  strlcpy(_modelNumber, num, sizeof(_modelNumber));
-}
-
-void UPnPClass::setModelURL(const char *url){
-  strlcpy(_modelURL, url, sizeof(_modelURL));
-}
-
-void UPnPClass::setManufacturer(const char *name){
-  strlcpy(_manufacturer, name, sizeof(_manufacturer));
-}
-
-void UPnPClass::setManufacturerURL(const char *url){
-  strlcpy(_manufacturerURL, url, sizeof(_manufacturerURL));
 }

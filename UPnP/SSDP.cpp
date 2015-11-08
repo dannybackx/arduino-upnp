@@ -1,32 +1,35 @@
 /*
-ESP8266 Simple Service Discovery
-Copyright (c) 2015 Hristo Gochkov
-
-Original (Arduino) version by Filippo Sallemi, July 23, 2014.
-Can be found at: https://github.com/nomadnt/uSSDP
-
-License (MIT license):
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-
-  The above copyright notice and this permission notice shall be included in
-  all copies or substantial portions of the Software.
-
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-  THE SOFTWARE.
-
+ * ESP8266 Simple Service Discovery
+ *
+ * Copyright (c) 2015 Hristo Gochkov
+ * Copyright (c) 2015 Danny Backx
+ * 
+ * Original (Arduino) version by Filippo Sallemi, July 23, 2014.
+ * Can be found at: https://github.com/nomadnt/uSSDP
+ * 
+ * License (MIT license):
+ *   Permission is hereby granted, free of charge, to any person obtaining a copy
+ *   of this software and associated documentation files (the "Software"), to deal
+ *   in the Software without restriction, including without limitation the rights
+ *   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *   copies of the Software, and to permit persons to whom the Software is
+ *   furnished to do so, subject to the following conditions:
+ * 
+ *   The above copyright notice and this permission notice shall be included in
+ *   all copies or substantial portions of the Software.
+ * 
+ *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ *   THE SOFTWARE.
+ * 
 */
 #define LWIP_OPEN_SRC
 #include <functional>
+#include "UPnP/UPnPDevice.h"
 #include "UPnP/SSDP.h"
 #include "WiFiUdp.h"
 #include "debug.h"
@@ -75,44 +78,6 @@ static const char* _ssdp_packet_template =
   "LOCATION: http://%u.%u.%u.%u:%u/%s\r\n" // WiFi.localIP(), _port, _schemaURL
   "\r\n";
 
-static const char* _ssdp_schema_template = 
-  "HTTP/1.1 200 OK\r\n"
-  "Content-Type: text/xml\r\n"
-  "Connection: close\r\n"
-  "Access-Control-Allow-Origin: *\r\n"
-  "\r\n"
-  "<?xml version=\"1.0\"?>"
-  "<root xmlns=\"urn:schemas-upnp-org:device-1-0\">"
-    "<specVersion>"
-      "<major>1</major>"
-      "<minor>0</minor>"
-    "</specVersion>"
-    "<URLBase>http://%u.%u.%u.%u:%u/</URLBase>" // WiFi.localIP(), _port
-    "<device>"
-      "<deviceType>urn:schemas-upnp-org:device:Basic:1</deviceType>"
-      "<friendlyName>%s</friendlyName>"
-      "<presentationURL>%s</presentationURL>"
-      "<serialNumber>%s</serialNumber>"
-      "<modelName>%s</modelName>"
-      "<modelNumber>%s</modelNumber>"
-      "<modelURL>%s</modelURL>"
-      "<manufacturer>%s</manufacturer>"
-      "<manufacturerURL>%s</manufacturerURL>"
-      "<UDN>uuid:%s</UDN>"
-      "<serviceList>"
-      "<service>"
-      "<serviceType>urn:danny-backx-info:service:sensor:1</serviceType>"
-      "<serviceId>urn:danny-backx-info:serviceId:sensor1</serviceId>"
-      "<controlURL>/control.xml</controlURL>"
-      "<eventSubURL>/event.xml</eventSubURL>"
-      "<SCPDURL>/scpd.xml</SCPDURL>"
-      "</service>"
-      "</serviceList>"
-    "</device>"
-  "</root>\r\n"
-  "\r\n";
-
-
 struct SSDPTimer {
   ETSTimer timer;
 };
@@ -123,33 +88,24 @@ _port(80),
 _pending(false),
 _timer(new SSDPTimer)
 {
-  _uuid[0] = '\0';
-  _modelNumber[0] = '\0';
-  _friendlyName[0] = '\0';
-  _presentationURL[0] = '\0';
-  _serialNumber[0] = '\0';
-  _modelName[0] = '\0';
-  _modelURL[0] = '\0';
-  _manufacturer[0] = '\0';
-  _manufacturerURL[0] = '\0';
-  sprintf(_schemaURL, "ssdp/schema.xml");
 }
 
 SSDPClass::~SSDPClass(){
   delete _timer;
 }
 
-bool SSDPClass::begin(){
+bool SSDPClass::begin(UPnPDevice &dev){
   _pending = false;
+  device = dev;
   
   uint32_t chipId = ESP.getChipId();
-  sprintf(_uuid, "38323636-4558-4dda-9188-cda0e6%02x%02x%02x",
+  sprintf(device._uuid, "38323636-4558-4dda-9188-cda0e6%02x%02x%02x",
     (uint16_t) ((chipId >> 16) & 0xff),
     (uint16_t) ((chipId >>  8) & 0xff), 
     (uint16_t)   chipId        & 0xff  );
 
 #ifdef DEBUG_SSDP
-  DEBUG_SSDP.printf("SSDP UUID: %s\n", (char *)_uuid);
+  DEBUG_SSDP.printf("SSDP UUID: %s\n", (char *)device._uuid);
 #endif
 
   if (_server) {
@@ -193,9 +149,9 @@ void SSDPClass::_send(ssdp_method_t method){
     _ssdp_packet_template,
     (method == NONE)?_ssdp_response_template:_ssdp_notify_template,
     SSDP_INTERVAL,
-    _modelName, _modelNumber,
-    _uuid,
-    IP2STR(&ip), _port, _schemaURL
+    device._modelName, device._modelNumber,
+    device._uuid,
+    IP2STR(&ip), device.getPort(), device.getSchemaURL()
   );
 
   _server->append(buffer, len);
@@ -223,23 +179,6 @@ void SSDPClass::_send(ssdp_method_t method){
 #endif
 
   _server->send(&remoteAddr, remotePort);
-}
-
-// Called by HTTP server when our description XML is queried
-void SSDPClass::schema(WiFiClient client){
-  uint32_t ip = WiFi.localIP();
-  client.printf(_ssdp_schema_template,
-    IP2STR(&ip), _port,
-    _friendlyName,
-    _presentationURL,
-    _serialNumber,
-    _modelName,
-    _modelNumber,
-    _modelURL,
-    _manufacturer,
-    _manufacturerURL,
-    _uuid
-  );
 }
 
 // Called periodically from a timer, once per second
@@ -354,46 +293,6 @@ void SSDPClass::_update(){
       _server->flush();
   }
 
-}
-
-void SSDPClass::setSchemaURL(const char *url){
-  strlcpy(_schemaURL, url, sizeof(_schemaURL));
-}
-
-void SSDPClass::setHTTPPort(uint16_t port){
-  _port = port;
-}
-
-void SSDPClass::setName(const char *name){
-  strlcpy(_friendlyName, name, sizeof(_friendlyName));
-}
-
-void SSDPClass::setURL(const char *url){
-  strlcpy(_presentationURL, url, sizeof(_presentationURL));
-}
-
-void SSDPClass::setSerialNumber(const char *serialNumber){
-  strlcpy(_serialNumber, serialNumber, sizeof(_serialNumber));
-}
-
-void SSDPClass::setModelName(const char *name){
-  strlcpy(_modelName, name, sizeof(_modelName));
-}
-
-void SSDPClass::setModelNumber(const char *num){
-  strlcpy(_modelNumber, num, sizeof(_modelNumber));
-}
-
-void SSDPClass::setModelURL(const char *url){
-  strlcpy(_modelURL, url, sizeof(_modelURL));
-}
-
-void SSDPClass::setManufacturer(const char *name){
-  strlcpy(_manufacturer, name, sizeof(_manufacturer));
-}
-
-void SSDPClass::setManufacturerURL(const char *url){
-  strlcpy(_manufacturerURL, url, sizeof(_manufacturerURL));
 }
 
 void SSDPClass::_onTimerStatic(SSDPClass* self) {
