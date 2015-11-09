@@ -1,5 +1,6 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+#include <UPnP/UPnPDevice.h>
 #include <UPnP.h>
 #include <UPnP/SSDP.h>
 
@@ -7,6 +8,7 @@ const char* ssid     = "your-ssid";
 const char* password = "your-password";
 
 ESP8266WebServer HTTP(80);
+UPnPDevice device;
 
 void setup() {
   Serial.begin(115200);
@@ -41,19 +43,19 @@ void setup() {
     HTTP.begin();
 
     Serial.printf("Starting SSDP...\n");
-    UPnP.setSchemaURL("description.xml");
-    UPnP.setHTTPPort(80);
-    UPnP.setName("UPnP Motion Sensor Kit");
-    UPnP.setSerialNumber("001788102201");
-    UPnP.setURL("index.html");
-    UPnP.setModelName("UPnP Motion Sensor Kit");
-    UPnP.setModelNumber("929000226503");
-    UPnP.setModelURL("http://danny.backx.info");
-    UPnP.setManufacturer("Danny Backx");
-    UPnP.setManufacturerURL("http://danny.backx.info");
-    SSDP.begin();
+    device.setSchemaURL("description.xml");
+    device.setHTTPPort(80);
+    device.setName("UPnP Motion Sensor Kit");
+    device.setSerialNumber("001788102201");
+    device.setURL("index.html");
+    device.setModelName("UPnP Motion Sensor Kit");
+    device.setModelNumber("929000226503");
+    device.setModelURL("http://danny.backx.info");
+    device.setManufacturer("Danny Backx");
+    device.setManufacturerURL("http://danny.backx.info");
+    SSDP.begin(device);
 
-    UPnP.begin();
+    UPnP.begin(device);
 
     Serial.printf("Ready!\n");
   } else {
@@ -65,5 +67,6 @@ void setup() {
 
 void loop() {
   HTTP.handleClient();
-  delay(1);
+  // Serial.printf("Called handleClient()...\n");
+  delay(1000);
 }
