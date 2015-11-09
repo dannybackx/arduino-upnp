@@ -36,12 +36,14 @@ void UPnPClass::begin(UPnPDevice &device) {
 
 UPnPClass UPnP;
 
-static const char* _ssdp_schema_template = 
+static const char* _http_header = 
   "HTTP/1.1 200 OK\r\n"
   "Content-Type: text/xml\r\n"
   "Connection: close\r\n"
   "Access-Control-Allow-Origin: *\r\n"
-  "\r\n"
+  "\r\n";
+
+static const char* _upnp_schema_template = 
   "<?xml version=\"1.0\"?>"
   "<root xmlns=\"urn:schemas-upnp-org:device-1-0\">"
     "<specVersion>"
@@ -64,20 +66,43 @@ static const char* _ssdp_schema_template =
       "<service>"
       "<serviceType>urn:danny-backx-info:service:sensor:1</serviceType>"
       "<serviceId>urn:danny-backx-info:serviceId:sensor1</serviceId>"
-      "<controlURL>/control.xml</controlURL>"
-      "<eventSubURL>/event.xml</eventSubURL>"
-      "<SCPDURL>/scpd.xml</SCPDURL>"
+      "<controlURL>/control</controlURL>"
+      "<eventSubURL>/event</eventSubURL>"
+      "<SCPDURL>/sensor.xml</SCPDURL>"
       "</service>"
       "</serviceList>"
     "</device>"
   "</root>\r\n"
   "\r\n";
 
+static const char* _upnp_scpd_template = 
+  "<?xml version=\"1.0\"?>"
+  "<scpd xmlns=\"urn:danny-backx-info:service-1-0\">"
+  "<specVersion>"
+  "<major>1</major>"
+  "<minor>0</minor>"
+  "</specVersion>"
+  "<actionList>"
+  "<action>"
+  "<name>getState</name>"
+  "<argumentList>"
+  "<argument>"
+  "<retval/>"
+  "<name>State</name>"
+  "<direction>out</direction>"
+  "</argument>"
+  "</argumentList>"
+  "</action>"
+  "</actionList>"
+  "</scpd>\r\n"
+  "\r\n";
+
 
 // Called by HTTP server when our description XML is queried
 void UPnPClass::schema(WiFiClient client) {
   uint32_t ip = WiFi.localIP();
-  client.printf(_ssdp_schema_template,
+  client.printf(_http_header);
+  client.printf(_upnp_schema_template,
     IP2STR(&ip), d.getPort(),
     d.getFriendlyName(),
     d.getPresentationURL(),
@@ -89,4 +114,10 @@ void UPnPClass::schema(WiFiClient client) {
     d.getManufacturerURL(),
     d.getUuid()
   );
+}
+
+void UPnPClass::SCPD(WiFiClient client) {
+  uint32_t ip = WiFi.localIP();
+  client.printf(_http_header);
+  client.printf(_upnp_scpd_template);
 }

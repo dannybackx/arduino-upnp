@@ -26,7 +26,6 @@ class UPnPClass {
     UPnPClass();
     ~UPnPClass();
     void begin(UPnPDevice &device);
-    void schema(WiFiClient client);
     void setSchemaURL(const char *url);
     void setHTTPPort(uint16_t port);
     void setName(const char *name);
@@ -37,6 +36,9 @@ class UPnPClass {
     void setModelURL(const char *url);
     void setManufacturer(const char *name);
     void setManufacturerURL(const char *url);
+
+    void schema(WiFiClient client);
+    void SCPD(WiFiClient client);
 
   private:
     UPnPDevice d;

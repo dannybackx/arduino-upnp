@@ -36,9 +36,9 @@ void setup() {
     HTTP.on("/description.xml", HTTP_GET, [](){
       UPnP.schema(HTTP.client());
     });
-    HTTP.on("/ssdp/schema.xml", HTTP_GET, []() {
-      //HTTP.send(200, "text/plain", "<root></root>");
-      UPnP.schema(HTTP.client());
+    HTTP.on("/event", eventHandler);
+    HTTP.on("/sensor.xml", HTTP_GET, []() {
+      UPnP.SCPD(HTTP.client());
     });
     HTTP.begin();
 
@@ -69,4 +69,12 @@ void loop() {
   HTTP.handleClient();
   // Serial.printf("Called handleClient()...\n");
   delay(1000);
+}
+
+void eventHandler() {
+  Serial.print("eventHandler(");
+  Serial.print(HTTP.uri());
+  Serial.println(")");
+
+  HTTP.send(200, "text/plain", "<yow>2</yow>\r\n\r\n");
 }
