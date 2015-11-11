@@ -1,11 +1,9 @@
 /*
- * ESP8266 Simple UPnP Framework
+ * ESP8266 Simple UPnP Service framework
+ *   Simple means little or no support for lots of services and devices.
+ *   An IoT device probably implements just one thing...
  *
- * Copyright (c) 2015 Hristo Gochkov
  * Copyright (c) 2015 Danny Backx
- * 
- * Original (Arduino) version by Filippo Sallemi, July 23, 2014.
- * Can be found at: https://github.com/nomadnt/uSSDP
  * 
  * License (MIT license):
  *   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,49 +23,46 @@
  *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *   THE SOFTWARE.
- * 
  */
-#ifndef	__UPnP_H_
-#define	__UPnP_H_
+#include "Arduino.h"
+#include "UPnP.h"
 
-#include "UPnP/UPnPDevice.h"
-#include "UPnP/SSDP.h"
-#include "WiFiUdp.h"
-#include "UPnP/UPnPService.h"
-#include "ESP8266WebServer.h"
+#define	UPNP_DEBUG Serial
 
-#define	N_SERVICES	4
+String serviceId, serviceType;
+Action *actions;
+int nactions;
 
-class UPnPClass {
-  public:
-    UPnPClass(ESP8266WebServer *http);
-    ~UPnPClass();
-
-    void begin(UPnPDevice &device);
-    void setSchemaURL(const char *url);
-    void setHTTPPort(uint16_t port);
-    void setName(const char *name);
-    void setURL(const char *url);
-    void setSerialNumber(const char *serialNumber);
-    void setModelName(const char *name);
-    void setModelNumber(const char *num);
-    void setModelURL(const char *url);
-    void setManufacturer(const char *name);
-    void setManufacturerURL(const char *url);
-
-    void schema(WiFiClient client);
-    void SCPD(WiFiClient client);
-
-    void addService(UPnPService *service);
-
-  private:
-    UPnPDevice device;
-    ESP8266WebServer *http;
-
-  protected:
-    UPnPService *services;
-};
-
-extern UPnPClass UPnP;
-
+UPnPService::UPnPService(String serviceType, String serviceId) {
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.println("UPnPService ctor");
 #endif
+  this->serviceType = serviceType;
+  this->serviceId = serviceId;
+  nactions = 0;
+  actions = new Action [N_ACTIONS];
+}
+
+UPnPService::~UPnPService() {
+  delete actions;
+}
+
+void UPnPService::addAction(String name, ActionFunction handler) {
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.print("UPnPService.addAction(");
+  UPNP_DEBUG.print(name);
+  UPNP_DEBUG.println(")");
+#endif
+  // FIXME intentionally no bounds checking code
+  actions[nactions].name = name;
+  actions[nactions].handler = handler;
+  nactions++;
+}
+
+void UPnPService::addStateVariable(String name, String datatype) {
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.print("UPnPService.addStateVariable(");
+  UPNP_DEBUG.print(name);
+  UPNP_DEBUG.println(")");
+#endif
+}

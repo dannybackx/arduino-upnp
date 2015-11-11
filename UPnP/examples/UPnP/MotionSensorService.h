@@ -1,11 +1,10 @@
 /*
- * ESP8266 Simple UPnP Framework
- *
- * Copyright (c) 2015 Hristo Gochkov
- * Copyright (c) 2015 Danny Backx
+ * This is a sample of a UPnP service that runs on a IoT device.
  * 
- * Original (Arduino) version by Filippo Sallemi, July 23, 2014.
- * Can be found at: https://github.com/nomadnt/uSSDP
+ * UPnP commands/queries can be used from an application or a script.
+ * This device is a PIR motion detector.
+ *  
+ * Copyright (c) 2015 Danny Backx
  * 
  * License (MIT license):
  *   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,49 +24,13 @@
  *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *   THE SOFTWARE.
- * 
  */
-#ifndef	__UPnP_H_
-#define	__UPnP_H_
 
-#include "UPnP/UPnPDevice.h"
-#include "UPnP/SSDP.h"
-#include "WiFiUdp.h"
+#include "UPnP.h"
 #include "UPnP/UPnPService.h"
-#include "ESP8266WebServer.h"
 
-#define	N_SERVICES	4
-
-class UPnPClass {
+class MotionSensorService : public UPnPService {
   public:
-    UPnPClass(ESP8266WebServer *http);
-    ~UPnPClass();
-
-    void begin(UPnPDevice &device);
-    void setSchemaURL(const char *url);
-    void setHTTPPort(uint16_t port);
-    void setName(const char *name);
-    void setURL(const char *url);
-    void setSerialNumber(const char *serialNumber);
-    void setModelName(const char *name);
-    void setModelNumber(const char *num);
-    void setModelURL(const char *url);
-    void setManufacturer(const char *name);
-    void setManufacturerURL(const char *url);
-
-    void schema(WiFiClient client);
-    void SCPD(WiFiClient client);
-
-    void addService(UPnPService *service);
-
-  private:
-    UPnPDevice device;
-    ESP8266WebServer *http;
-
-  protected:
-    UPnPService *services;
+    MotionSensorService(String serviceType, String serviceId);
+    ~MotionSensorService();
 };
-
-extern UPnPClass UPnP;
-
-#endif

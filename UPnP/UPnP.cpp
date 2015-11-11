@@ -1,5 +1,32 @@
 /*
+ * ESP8266 Simple UPnP framework
+ *   There is no separate Device class, we assume one (IoT) device is all we do.
  *
+ * Copyright (c) 2015 Hristo Gochkov
+ * Copyright (c) 2015 Danny Backx
+ * 
+ * Original (Arduino) version by Filippo Sallemi, July 23, 2014.
+ * Can be found at: https://github.com/nomadnt/uSSDP
+ * 
+ * License (MIT license):
+ *   Permission is hereby granted, free of charge, to any person obtaining a copy
+ *   of this software and associated documentation files (the "Software"), to deal
+ *   in the Software without restriction, including without limitation the rights
+ *   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *   copies of the Software, and to permit persons to whom the Software is
+ *   furnished to do so, subject to the following conditions:
+ * 
+ *   The above copyright notice and this permission notice shall be included in
+ *   all copies or substantial portions of the Software.
+ * 
+ *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ *   THE SOFTWARE.
+ * 
  */
 #include "Arduino.h"
 #include "UPnP.h"
@@ -9,6 +36,7 @@
 #include "UPnP/SSDP.h"
 #include "WiFiUdp.h"
 #include "debug.h"
+#include "ESP8266WebServer.h"
 
 extern "C" {
   #include "osapi.h"
@@ -23,18 +51,23 @@ extern "C" {
 #include "lwip/mem.h"
 #include "include/UdpContext.h"
 
-UPnPClass::UPnPClass() {
+
+ESP8266WebServer *http;
+
+UPnPClass::UPnPClass(ESP8266WebServer *http) {
+  services = 0;
+  this->http = http;
 }
 
 UPnPClass::~UPnPClass() {
 }
 
 void UPnPClass::begin(UPnPDevice &device) {
-	Serial.printf("UPnP begin()\n");
-	d = device;
+  Serial.printf("UPnP begin()\n");
+  this->device = device;
 }
 
-UPnPClass UPnP;
+// UPnPClass UPnP;
 
 static const char* _http_header = 
   "HTTP/1.1 200 OK\r\n"
@@ -89,11 +122,19 @@ static const char* _upnp_scpd_template =
   "<argument>"
   "<retval/>"
   "<name>State</name>"
+  "<relatedStateVariable>State</relatedStateVariable>"
   "<direction>out</direction>"
   "</argument>"
   "</argumentList>"
   "</action>"
   "</actionList>"
+  "<serviceStateTable>"
+  "<stateVariable sendEvents=\"yes\">"
+  "<name>State</name>"
+  "<dataType>String</dataType>"
+  "<defaultValue></defaultValue>"
+  "</stateVariable>"
+  "</serviceStateTable>"
   "</scpd>\r\n"
   "\r\n";
 
@@ -103,16 +144,16 @@ void UPnPClass::schema(WiFiClient client) {
   uint32_t ip = WiFi.localIP();
   client.printf(_http_header);
   client.printf(_upnp_schema_template,
-    IP2STR(&ip), d.getPort(),
-    d.getFriendlyName(),
-    d.getPresentationURL(),
-    d.getSerialNumber(),
-    d.getModelName(),
-    d.getModelNumber(),
-    d.getModelURL(),
-    d.getManufacturer(),
-    d.getManufacturerURL(),
-    d.getUuid()
+    IP2STR(&ip), device.getPort(),
+    device.getFriendlyName(),
+    device.getPresentationURL(),
+    device.getSerialNumber(),
+    device.getModelName(),
+    device.getModelNumber(),
+    device.getModelURL(),
+    device.getManufacturer(),
+    device.getManufacturerURL(),
+    device.getUuid()
   );
 }
 
@@ -120,4 +161,8 @@ void UPnPClass::SCPD(WiFiClient client) {
   uint32_t ip = WiFi.localIP();
   client.printf(_http_header);
   client.printf(_upnp_scpd_template);
+}
+
+void UPnPClass::addService(UPnPService *srv) {
+  this->services = srv;
 }

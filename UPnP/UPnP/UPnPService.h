@@ -1,11 +1,5 @@
 /*
- * ESP8266 Simple UPnP Framework
- *
- * Copyright (c) 2015 Hristo Gochkov
  * Copyright (c) 2015 Danny Backx
- * 
- * Original (Arduino) version by Filippo Sallemi, July 23, 2014.
- * Can be found at: https://github.com/nomadnt/uSSDP
  * 
  * License (MIT license):
  *   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -27,47 +21,39 @@
  *   THE SOFTWARE.
  * 
  */
-#ifndef	__UPnP_H_
-#define	__UPnP_H_
+#ifndef	__UPnPService_H_
+#define	__UPnPService_H_
 
-#include "UPnP/UPnPDevice.h"
-#include "UPnP/SSDP.h"
-#include "WiFiUdp.h"
-#include "UPnP/UPnPService.h"
+#include "debug.h"
 #include "ESP8266WebServer.h"
 
-#define	N_SERVICES	4
+#define	N_ACTIONS	4
 
-class UPnPClass {
+typedef void (*ActionFunction)(ESP8266WebServer);
+
+typedef struct {
+  String name;
+  ActionFunction handler;
+} Action;
+
+typedef struct {
+  String name, datatype;
+} StateVariable;
+
+class UPnPService {
   public:
-    UPnPClass(ESP8266WebServer *http);
-    ~UPnPClass();
-
-    void begin(UPnPDevice &device);
-    void setSchemaURL(const char *url);
-    void setHTTPPort(uint16_t port);
-    void setName(const char *name);
-    void setURL(const char *url);
-    void setSerialNumber(const char *serialNumber);
-    void setModelName(const char *name);
-    void setModelNumber(const char *num);
-    void setModelURL(const char *url);
-    void setManufacturer(const char *name);
-    void setManufacturerURL(const char *url);
-
-    void schema(WiFiClient client);
-    void SCPD(WiFiClient client);
-
-    void addService(UPnPService *service);
+    UPnPService(String serviceType, String serviceId);
+    ~UPnPService();
+    void addAction(String name, ActionFunction handler);
+    void addStateVariable(String name, String datatype);
 
   private:
-    UPnPDevice device;
-    ESP8266WebServer *http;
 
   protected:
-    UPnPService *services;
+    String serviceId;
+    String serviceType;
+    int nactions;
+    Action *actions;
 };
-
-extern UPnPClass UPnP;
 
 #endif

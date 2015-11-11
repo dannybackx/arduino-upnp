@@ -3,12 +3,14 @@
 #include <UPnP/UPnPDevice.h>
 #include <UPnP.h>
 #include <UPnP/SSDP.h>
+#include "MotionSensorService.h"
 
 const char* ssid     = "your-ssid";
 const char* password = "your-password";
 
 ESP8266WebServer HTTP(80);
 UPnPDevice device;
+UPnPClass UPnP(&HTTP);
 
 void setup() {
   Serial.begin(115200);
@@ -57,6 +59,9 @@ void setup() {
 
     UPnP.begin(device);
 
+    MotionSensorService srv = MotionSensorService("urn:danny-backx-info:service:sensor:1", "urn:danny-backx-info:serviceId:sensor1");
+    UPnP.addService(&srv);
+
     Serial.printf("Ready!\n");
   } else {
     Serial.printf("WiFi Failed\n");
@@ -68,13 +73,26 @@ void setup() {
 void loop() {
   HTTP.handleClient();
   // Serial.printf("Called handleClient()...\n");
-  delay(1000);
+  delay(10);
 }
 
+// This is a hack to demonstrate
+// TODO : decode the request, see if it is one we want to answer
+// TODO : the actual response needs to come from the (MotionSensor)Service class
 void eventHandler() {
   Serial.print("eventHandler(");
   Serial.print(HTTP.uri());
   Serial.println(")");
 
-  HTTP.send(200, "text/plain", "<yow>2</yow>\r\n\r\n");
+  // Assumption that we get called with a GetState action
+  HTTP.send(200, "text/xml; charset=\"utf-8\"",
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n"
+      "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">\r\n"
+      "<s:body>\r\n"
+      "<u:GetStateResponse xmlns=\"urn:danny-backx-info:service:sensor:1\">\r\n"
+      "<State>0</State>\r\n"
+      "</u:GetStateResponse>\r\n"
+      "</s:body>\r\n"    
+      "</s:Envelope>\r\n"
+    );
 }
