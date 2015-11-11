@@ -27,24 +27,13 @@
  *   THE SOFTWARE.
  * 
  */
-#define LWIP_OPEN_SRC
-#include <functional>
 #include "UPnP/UPnPDevice.h"
 #include "UPnP/SSDP.h"
 #include "WiFiUdp.h"
 #include "debug.h"
 
-extern "C" {
-  #include "osapi.h"
-  #include "ets_sys.h"
-  #include "user_interface.h"
-}
-
-#include "lwip/opt.h"
 #include "lwip/udp.h"
-#include "lwip/inet.h"
 #include "lwip/igmp.h"
-#include "lwip/mem.h"
 #include "include/UdpContext.h"
 
 #define DEBUG_SSDP  Serial
@@ -142,6 +131,9 @@ bool SSDPClass::begin(UPnPDevice &dev){
 }
 
 void SSDPClass::_send(ssdp_method_t method){
+#ifdef DEBUG_SSDPx
+  DEBUG_SSDP.println("SSDPClass::_send()");
+#endif
   char buffer[1460];
   uint32_t ip = WiFi.localIP();
   
@@ -179,11 +171,17 @@ void SSDPClass::_send(ssdp_method_t method){
 #endif
 
   _server->send(&remoteAddr, remotePort);
+#ifdef DEBUG_SSDPx
+    DEBUG_SSDP.println("After _server->send()");
+#endif
 }
 
 // Called periodically from a timer, once per second
 // Also called when a packet is received on the UDP socket
 void SSDPClass::_update(){
+#ifdef DEBUG_SSDPx
+  DEBUG_SSDP.println("SSDPClass::_update()");
+#endif
   // Packet received
   if(!_pending && _server->next()) {
     ssdp_method_t method = NONE;
@@ -250,6 +248,10 @@ void SSDPClass::_update(){
                   DEBUG_SSDP.printf("REJECT: %s\n", (char *)buffer);
 #endif
                 }
+#else
+#ifdef DEBUG_SSDP
+                  DEBUG_SSDP.printf("Warning - previously REJECTed: %s\n", (char *)buffer);
+#endif
 #endif
                 break;
               case MX:
@@ -274,11 +276,6 @@ void SSDPClass::_update(){
       }
     }
   }
-#ifdef DEBUG_SSDPx
-  else {
-  DEBUG_SSDP.printf("_update ELSE\n");
-  }
-#endif
 
   if(_pending && (millis() - _process_time) > _delay){
     _pending = false; _delay = 0;

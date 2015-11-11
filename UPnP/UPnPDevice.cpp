@@ -29,25 +29,7 @@
  */
 #include "Arduino.h"
 #include "UPnP/UPnPDevice.h"
-
-#define LWIP_OPEN_SRC
-#include <functional>
-#include "UPnP/SSDP.h"
-#include "WiFiUdp.h"
 #include "debug.h"
-
-extern "C" {
-  #include "osapi.h"
-  #include "ets_sys.h"
-  #include "user_interface.h"
-}
-
-#include "lwip/opt.h"
-#include "lwip/udp.h"
-#include "lwip/inet.h"
-#include "lwip/igmp.h"
-#include "lwip/mem.h"
-#include "include/UdpContext.h"
 
 UPnPDevice::UPnPDevice() {
   _uuid[0] = '\0';

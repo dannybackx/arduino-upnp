@@ -40,10 +40,12 @@
 
 class UPnPClass {
   public:
-    UPnPClass(ESP8266WebServer *http);
+    UPnPClass();
+    //UPnPClass(ESP8266WebServer *http);
     ~UPnPClass();
+    //void begin(UPnPDevice &device);
+    void begin(ESP8266WebServer *http, UPnPDevice *device);
 
-    void begin(UPnPDevice &device);
     void setSchemaURL(const char *url);
     void setHTTPPort(uint16_t port);
     void setName(const char *name);
@@ -61,13 +63,13 @@ class UPnPClass {
     void addService(UPnPService *service);
 
   private:
-    UPnPDevice device;
+    UPnPDevice *device;
     ESP8266WebServer *http;
 
   protected:
     UPnPService *services;
 };
 
-extern UPnPClass UPnP;
+extern UPnPClass UPnP;	// FIXME
 
 #endif

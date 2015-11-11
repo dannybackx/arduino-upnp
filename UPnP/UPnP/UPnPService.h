@@ -28,24 +28,31 @@
 #include "ESP8266WebServer.h"
 
 #define	N_ACTIONS	4
+#define	N_VARIABLES	4
 
 typedef void (*ActionFunction)(ESP8266WebServer);
 
 typedef struct {
   String name;
   ActionFunction handler;
+  String xml;
 } Action;
 
 typedef struct {
-  String name, datatype;
+  String name, dataType;
+  boolean sendEvents;
 } StateVariable;
 
 class UPnPService {
   public:
     UPnPService(String serviceType, String serviceId);
     ~UPnPService();
-    void addAction(String name, ActionFunction handler);
-    void addStateVariable(String name, String datatype);
+    //void addAction(String name, ActionFunction handler);
+    void addAction(String name, ActionFunction handler, String xml);
+    void addStateVariable(String name, String datatype, boolean sendEvents);
+    String getActionListXML();
+    String getStateVariableListXML();
+    String getServiceXML();
 
   private:
 
@@ -54,6 +61,7 @@ class UPnPService {
     String serviceType;
     int nactions;
     Action *actions;
+    StateVariable *variables;
 };
 
 #endif

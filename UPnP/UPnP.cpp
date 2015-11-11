@@ -1,6 +1,6 @@
 /*
  * ESP8266 Simple UPnP framework
- *   There is no separate Device class, we assume one (IoT) device is all we do.
+ *   There's no separate class for multiple devices, we assume one (IoT) device is all we do.
  *
  * Copyright (c) 2015 Hristo Gochkov
  * Copyright (c) 2015 Danny Backx
@@ -30,44 +30,28 @@
  */
 #include "Arduino.h"
 #include "UPnP.h"
-
-#define LWIP_OPEN_SRC
-#include <functional>
-#include "UPnP/SSDP.h"
-#include "WiFiUdp.h"
 #include "debug.h"
 #include "ESP8266WebServer.h"
 
 extern "C" {
-  #include "osapi.h"
-  #include "ets_sys.h"
   #include "user_interface.h"
 }
 
-#include "lwip/opt.h"
-#include "lwip/udp.h"
-#include "lwip/inet.h"
-#include "lwip/igmp.h"
-#include "lwip/mem.h"
-#include "include/UdpContext.h"
-
-
 ESP8266WebServer *http;
+UPnPClass UPnP;	// FIXME
 
-UPnPClass::UPnPClass(ESP8266WebServer *http) {
+UPnPClass::UPnPClass() {
   services = 0;
-  this->http = http;
 }
 
 UPnPClass::~UPnPClass() {
 }
 
-void UPnPClass::begin(UPnPDevice &device) {
-  Serial.printf("UPnP begin()\n");
+void UPnPClass::begin(ESP8266WebServer *http, UPnPDevice *device) {
+  Serial.printf("UPnP begin(%p, %p)\n", http, device);
   this->device = device;
+  this->http = http;
 }
-
-// UPnPClass UPnP;
 
 static const char* _http_header = 
   "HTTP/1.1 200 OK\r\n"
@@ -144,16 +128,16 @@ void UPnPClass::schema(WiFiClient client) {
   uint32_t ip = WiFi.localIP();
   client.printf(_http_header);
   client.printf(_upnp_schema_template,
-    IP2STR(&ip), device.getPort(),
-    device.getFriendlyName(),
-    device.getPresentationURL(),
-    device.getSerialNumber(),
-    device.getModelName(),
-    device.getModelNumber(),
-    device.getModelURL(),
-    device.getManufacturer(),
-    device.getManufacturerURL(),
-    device.getUuid()
+    IP2STR(&ip), device->getPort(),
+    device->getFriendlyName(),
+    device->getPresentationURL(),
+    device->getSerialNumber(),
+    device->getModelName(),
+    device->getModelNumber(),
+    device->getModelURL(),
+    device->getManufacturer(),
+    device->getManufacturerURL(),
+    device->getUuid()
   );
 }
 
@@ -164,5 +148,8 @@ void UPnPClass::SCPD(WiFiClient client) {
 }
 
 void UPnPClass::addService(UPnPService *srv) {
+#ifdef DEBUG
+  DEBUG.println("UPnPClass::addService()");
+#endif
   this->services = srv;
 }

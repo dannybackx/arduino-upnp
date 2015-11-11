@@ -10,7 +10,7 @@ const char* password = "your-password";
 
 ESP8266WebServer HTTP(80);
 UPnPDevice device;
-UPnPClass UPnP(&HTTP);
+// UPnPClass UPnP;
 
 void setup() {
   Serial.begin(115200);
@@ -33,7 +33,9 @@ void setup() {
 
     Serial.printf("Starting HTTP...\n");
     HTTP.on("/index.html", HTTP_GET, [](){
+      Serial.println("Sending hello");
       HTTP.send(200, "text/plain", "Hello World!");
+      Serial.println("Hello ok");
     });
     HTTP.on("/description.xml", HTTP_GET, [](){
       UPnP.schema(HTTP.client());
@@ -57,7 +59,7 @@ void setup() {
     device.setManufacturerURL("http://danny.backx.info");
     SSDP.begin(device);
 
-    UPnP.begin(device);
+    UPnP.begin(&HTTP, &device);
 
     MotionSensorService srv = MotionSensorService("urn:danny-backx-info:service:sensor:1", "urn:danny-backx-info:serviceId:sensor1");
     UPnP.addService(&srv);
@@ -80,9 +82,7 @@ void loop() {
 // TODO : decode the request, see if it is one we want to answer
 // TODO : the actual response needs to come from the (MotionSensor)Service class
 void eventHandler() {
-  Serial.print("eventHandler(");
-  Serial.print(HTTP.uri());
-  Serial.println(")");
+  Serial.println("eventHandler");
 
   // Assumption that we get called with a GetState action
   HTTP.send(200, "text/xml; charset=\"utf-8\"",
