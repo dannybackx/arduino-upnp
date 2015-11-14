@@ -32,6 +32,7 @@
 #include "debug.h"
 
 UPnPDevice::UPnPDevice() {
+  _deviceURN[0] = '\0';
   _uuid[0] = '\0';
   _modelNumber[0] = '\0';
   _friendlyName[0] = '\0';
@@ -87,6 +88,10 @@ void UPnPDevice::setManufacturerURL(const char *url){
   strlcpy(_manufacturerURL, url, sizeof(_manufacturerURL));
 }
 
+void UPnPDevice::setDeviceURN(const char *urn){
+  strlcpy(_deviceURN, urn, sizeof(_deviceURN));
+}
+
 void UPnPDevice::setPort(uint16_t port) {
 	_port = port;
 }
@@ -133,4 +138,8 @@ char *UPnPDevice::getUuid() {
 
 char *UPnPDevice::getFriendlyName() {
 	return _friendlyName;
+}
+
+char *UPnPDevice::getDeviceURN() {
+	return _deviceURN;
 }

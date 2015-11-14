@@ -29,13 +29,7 @@
 
 #define	UPNP_DEBUG Serial
 
-String serviceId, serviceType;
-Action *actions;
-int nactions;
-StateVariable *variables;
-int nvariables;
-
-UPnPService::UPnPService(String serviceType, String serviceId) {
+UPnPService::UPnPService(const char *serviceType, const char *serviceId) {
 #ifdef UPNP_DEBUG
   UPNP_DEBUG.println("UPnPService ctor");
 #endif
@@ -52,27 +46,9 @@ UPnPService::~UPnPService() {
   delete variables;
 }
 
-#if 0
-void UPnPService::addAction(String name, ActionFunction handler) {
+void UPnPService::addAction(const char *name, ActionFunction handler, const char *xml) {
 #ifdef UPNP_DEBUG
-  UPNP_DEBUG.print("UPnPService.addAction(");
-  UPNP_DEBUG.print(name);
-  UPNP_DEBUG.println(")");
-#endif
-  // FIXME intentionally no bounds checking code
-  actions[nactions].name = name;
-  actions[nactions].handler = handler;
-  nactions++;
-}
-#endif
-
-void UPnPService::addAction(String name, ActionFunction handler, String xml) {
-#ifdef UPNP_DEBUG
-  UPNP_DEBUG.print("UPnPService.addAction(");
-  UPNP_DEBUG.print(name);
-  UPNP_DEBUG.print(",_,");
-  UPNP_DEBUG.print(xml);
-  UPNP_DEBUG.println(")");
+  UPNP_DEBUG.printf("UPnPService.addAction(%s,_,%s)\n", name, xml);
 #endif
   // FIXME intentionally no bounds checking code
   actions[nactions].name = name;
@@ -81,15 +57,10 @@ void UPnPService::addAction(String name, ActionFunction handler, String xml) {
   nactions++;
 }
 
-void UPnPService::addStateVariable(String name, String datatype, boolean sendEvents) {
+void UPnPService::addStateVariable(const char *name, const char *datatype, boolean sendEvents) {
 #ifdef UPNP_DEBUG
-  UPNP_DEBUG.print("UPnPService.addStateVariable(");
-  UPNP_DEBUG.print(name);
-  UPNP_DEBUG.print(",");
-  UPNP_DEBUG.print(datatype);
-  UPNP_DEBUG.print(",");
-  UPNP_DEBUG.print(sendEvents);
-  UPNP_DEBUG.println(")");
+  UPNP_DEBUG.printf("UPnPService.addStateVariable(%s,%s,%s)\n",
+    name, datatype, sendEvents ? "true" : "false");
 #endif
 
   variables[nvariables].name = name;
@@ -98,43 +69,83 @@ void UPnPService::addStateVariable(String name, String datatype, boolean sendEve
   nvariables++;
 }
 
-String UPnPService::getServiceXML() {
-  String r = "<service>";
-  r += "<serviceType>" + serviceType;
-  r += "</serviceType><serviceId>" + serviceId;
-  r += "</serviceId>"
-    "<controlURL>/control</controlURL>"
-    "<eventSubURL>/event</eventSubURL>"
-    "<SCPDURL>/sensor.xml</SCPDURL>"
-    "</service>";
+#if 0
+/* FIXME there is clearly a problem in this code
+ *
+ * Sending description.xml ...
+ *
+ * UPnPService::getServiceXML() 77
+ * UPnPService::getServiceXML() 79, r {}
+ * UPnPService::getServiceXML() 81, r {<service>}
+ * UPnPService::g
+ * 
+ * Exception (28):
+ *
+ * epc1=0x4000bf80 epc2=0x00000000 epc3=0x00000000 excvaddr=0x00000000 depc=0x00000000
+ *
+ * ctx: cont 
+ *
+ * sp: 3ffed6d0 end: 3ffeda40 offset: 01a0
+ *
+ * >>>stack>>>
+ *
+ * 3ffed870:  00000000 ff000000 3ffed940 3ffec9e8  
+ * 3ffed880:  40203633 3ffed8e0 3fff55d8 40207e66  
+ */
+char *UPnPService::getServiceXML() {
+  Serial.printf("UPnPService::getServiceXML() %d\n", __LINE__);
+  char *r = new char[256];	// FIXME
+  Serial.printf("UPnPService::getServiceXML() %d, r {%s}\n", __LINE__, r);
+  strcpy(r, "<service>");
+  Serial.printf("UPnPService::getServiceXML() %d, r {%s}\n", __LINE__, r);
+  strcat(r, "<serviceType>");
+  Serial.printf("UPnPService::getServiceXML() %d, r {%s}\n", __LINE__, r);
+  strcat(r, serviceType);
+  Serial.printf("UPnPService::getServiceXML() %d, r {%s}\n", __LINE__, r);
+  strcat(r, "</serviceType><serviceId>");
+  strcat(r, serviceId);
+  strcat(r, "</serviceId><controlURL>/control</controlURL><eventSubURL>/event</eventSubURL><SCPDURL>/sensor.xml</SCPDURL></service>");
   return r;
 }
+#else
+char *UPnPService::getServiceXML() {
+  return "<service><serviceType>urn:danny-backx-info:service:sensor:1</serviceType><serviceId>urn:danny-backx-info:serviceId:sensor1</serviceId><controlURL>/control</controlURL><eventSubURL>/event</eventSubURL><SCPDURL>/sensor.xml</SCPDURL></service>";
+}
+#endif
 
-String UPnPService::getActionListXML() {
-  String r;
+char * UPnPService::getActionListXML() {
+  int l = 32;
   int i;
-  r = "<ActionList>\r\n";
   for (i=0; i<nactions; i++)
-    r += actions[i].xml;
-  r += "</ActionList>\r\n";
+    l += strlen(actions[i].xml);
+  char *r = new char[l];	// FIXME
+  strcpy(r, "<ActionList>\r\n");
+  for (i=0; i<nactions; i++)
+    strcat(r, actions[i].xml);
+  strcat(r, "</ActionList>\r\n");
   return r;
 }
 
-String UPnPService::getStateVariableListXML() {
-  String r;
+char * UPnPService::getStateVariableListXML() {
+  int l = 40;
   int i;
-  r = "<serviceStateTable>\r\n";
+  for (i=0; i<nvariables; i++) {
+    l += variables[i].sendEvents ? 70 : 55;
+    l += strlen(variables[i].name) + strlen(variables[i].dataType);
+  }
+  char *r = new char[l];	// FIXME
+  strcpy(r, "<serviceStateTable>\r\n");
   for (i=0; i<nvariables; i++) {
     if (variables[i].sendEvents)
-      r += "<stateVariable sendEvents=\"yes\">";
+      strcat(r, "<stateVariable sendEvents=\"yes\">");
     else
-      r += "<stateVariable>";
-    r += "<name>";
-    r += variables[i].name;
-    r += "</name><dataType>";
-    r += variables[i].dataType;
-    r += "</dataType>";
+      strcat(r, "<stateVariable>");
+    strcat(r, "<name>");
+    strcat(r, variables[i].name);
+    strcat(r, "</name><dataType>");
+    strcat(r, variables[i].dataType);
+    strcat(r, "</dataType>");
   }
-  r += "</serviceStateTable>\r\n";
+  strcat(r, "</serviceStateTable>\r\n");
   return r;
 }

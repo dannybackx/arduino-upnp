@@ -44,9 +44,8 @@
 #define SSDP_URI_SIZE     2
 #define SSDP_BUFFER_SIZE  64
 #define SSDP_MULTICAST_TTL 1
+
 static const IPAddress SSDP_MULTICAST_ADDR(239, 255, 255, 250);
-
-
 
 static const char* _ssdp_response_template = 
   "HTTP/1.1 200 OK\r\n"
@@ -131,10 +130,7 @@ bool SSDPClass::begin(UPnPDevice &dev){
 }
 
 void SSDPClass::_send(ssdp_method_t method){
-#ifdef DEBUG_SSDPx
-  DEBUG_SSDP.println("SSDPClass::_send()");
-#endif
-  char buffer[1460];
+  char buffer[1460];	// FIXME isn't this too big ?
   uint32_t ip = WiFi.localIP();
   
   int len = snprintf(buffer, sizeof(buffer), 
@@ -145,6 +141,9 @@ void SSDPClass::_send(ssdp_method_t method){
     device._uuid,
     IP2STR(&ip), device.getPort(), device.getSchemaURL()
   );
+#ifdef DEBUG_SSDP
+  DEBUG_SSDP.printf("SSDPClass::_send() : len %d\n", len);
+#endif
 
   _server->append(buffer, len);
 
@@ -248,10 +247,6 @@ void SSDPClass::_update(){
                   DEBUG_SSDP.printf("REJECT: %s\n", (char *)buffer);
 #endif
                 }
-#else
-#ifdef DEBUG_SSDP
-                  DEBUG_SSDP.printf("Warning - previously REJECTed: %s\n", (char *)buffer);
-#endif
 #endif
                 break;
               case MX:

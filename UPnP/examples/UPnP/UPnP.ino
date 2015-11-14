@@ -4,9 +4,22 @@
 #include <UPnP.h>
 #include <UPnP/SSDP.h>
 #include "MotionSensorService.h"
+//#include "GDBStub.h"
 
-const char* ssid     = "your-ssid";
-const char* password = "your-password";
+// Stuff to sync this source file in github
+// Provide a "mywifi.h" file that defines the two macros below
+//
+// So copy something like this into that file and put in the right values :
+// #define MY_SSID "your-ssid"
+// #define MY_WIFI_PASSWORD "your-password"
+
+#include "mywifi.h"
+const char* ssid     = MY_SSID;
+const char* password = MY_WIFI_PASSWORD;
+
+// const char *serviceType = "urn:danny-backx-info:service:sensor:1";
+// const char *serviceId = "urn:danny-backx-info:serviceId:sensor1";
+const char *deviceURN = "urn:schemas-upnp-org:device:Basic:1";
 
 ESP8266WebServer HTTP(80);
 UPnPDevice device;
@@ -18,7 +31,7 @@ void setup() {
   Serial.printf("Boot version %d\n", ESP.getBootVersion());
   Serial.printf("Flash chip Real size %d, size %d\n", ESP.getFlashChipRealSize(), ESP.getFlashChipSize());
   Serial.printf("SDK version %s\n", ESP.getSdkVersion());
-  Serial.printf("Vcc %d\n", ESP.getVcc());
+  // Serial.printf("Vcc %d\n", ESP.getVcc());
 
   Serial.print("Starting WiFi... ");
 
@@ -38,7 +51,9 @@ void setup() {
       Serial.println("Hello ok");
     });
     HTTP.on("/description.xml", HTTP_GET, [](){
+      Serial.println("Sending description.xml ...");
       UPnP.schema(HTTP.client());
+      Serial.println("... description.xml ok");
     });
     HTTP.on("/event", eventHandler);
     HTTP.on("/sensor.xml", HTTP_GET, []() {
@@ -47,6 +62,7 @@ void setup() {
     HTTP.begin();
 
     Serial.printf("Starting SSDP...\n");
+    device.setDeviceURN(deviceURN);
     device.setSchemaURL("description.xml");
     device.setHTTPPort(80);
     device.setName("UPnP Motion Sensor Kit");
@@ -61,7 +77,7 @@ void setup() {
 
     UPnP.begin(&HTTP, &device);
 
-    MotionSensorService srv = MotionSensorService("urn:danny-backx-info:service:sensor:1", "urn:danny-backx-info:serviceId:sensor1");
+    MotionSensorService srv = MotionSensorService();
     UPnP.addService(&srv);
 
     Serial.printf("Ready!\n");

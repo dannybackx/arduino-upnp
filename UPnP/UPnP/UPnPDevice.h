@@ -32,22 +32,7 @@
 
 #define LWIP_OPEN_SRC
 #include <functional>
-//#include "UPnP/SSDP.h"
-//#include "WiFiUdp.h"
 #include "debug.h"
-
-extern "C" {
-  #include "osapi.h"
-  #include "ets_sys.h"
-//  #include "user_interface.h"
-}
-
-// #include "lwip/opt.h"
-// #include "lwip/udp.h"
-// #include "lwip/inet.h"
-// #include "lwip/igmp.h"
-// #include "lwip/mem.h"
-// #include "include/UdpContext.h"
 
 #define UPnP_UUID_SIZE              37
 #define UPnP_SCHEMA_URL_SIZE        64
@@ -74,6 +59,7 @@ class UPnPDevice {
     void setModelURL(const char *url);
     void setManufacturer(const char *name);
     void setManufacturerURL(const char *url);
+    void setDeviceURN(const char *urn);
 
     /*
     void setName(const String& name) { setName(name.c_str()); }
@@ -102,6 +88,7 @@ class UPnPDevice {
     char *getManufacturer();
     char *getManufacturerURL();
     char *getUuid();
+    char *getDeviceURN();
 
     char _uuid[UPnP_UUID_SIZE];
     char _modelName[UPnP_MODEL_NAME_SIZE];
@@ -118,6 +105,7 @@ class UPnPDevice {
     char _manufacturer[UPnP_MANUFACTURER_SIZE];
     char _manufacturerURL[UPnP_MANUFACTURER_URL_SIZE];
     char _modelURL[UPnP_MODEL_URL_SIZE];
+    char _deviceURN[UPnP_MODEL_URL_SIZE];
 };
 
 #endif

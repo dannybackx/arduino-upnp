@@ -33,33 +33,33 @@
 typedef void (*ActionFunction)(ESP8266WebServer);
 
 typedef struct {
-  String name;
+  const char *name;
   ActionFunction handler;
-  String xml;
+  const char *xml;
 } Action;
 
 typedef struct {
-  String name, dataType;
+  const char *name, *dataType;
   boolean sendEvents;
 } StateVariable;
 
 class UPnPService {
   public:
-    UPnPService(String serviceType, String serviceId);
+    UPnPService(const char *serviceType, const char *serviceId);
     ~UPnPService();
-    //void addAction(String name, ActionFunction handler);
-    void addAction(String name, ActionFunction handler, String xml);
-    void addStateVariable(String name, String datatype, boolean sendEvents);
-    String getActionListXML();
-    String getStateVariableListXML();
-    String getServiceXML();
+
+    void addAction(const char *name, ActionFunction handler, const char *xml);
+    void addStateVariable(const char *name, const char *datatype, boolean sendEvents);
+    char *getActionListXML();
+    char *getStateVariableListXML();
+    char *getServiceXML();
 
   private:
 
   protected:
-    String serviceId;
-    String serviceType;
-    int nactions;
+    const char *serviceId;
+    const char *serviceType;
+    int nactions, nvariables;
     Action *actions;
     StateVariable *variables;
 };

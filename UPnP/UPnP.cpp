@@ -37,7 +37,6 @@ extern "C" {
   #include "user_interface.h"
 }
 
-ESP8266WebServer *http;
 UPnPClass UPnP;	// FIXME
 
 UPnPClass::UPnPClass() {
@@ -60,7 +59,7 @@ static const char* _http_header =
   "Access-Control-Allow-Origin: *\r\n"
   "\r\n";
 
-static const char* _upnp_schema_template = 
+static const char *_upnp_device_template_1 =
   "<?xml version=\"1.0\"?>"
   "<root xmlns=\"urn:schemas-upnp-org:device-1-0\">"
     "<specVersion>"
@@ -69,7 +68,7 @@ static const char* _upnp_schema_template =
     "</specVersion>"
     "<URLBase>http://%u.%u.%u.%u:%u/</URLBase>" // WiFi.localIP(), _port
     "<device>"
-      "<deviceType>urn:schemas-upnp-org:device:Basic:1</deviceType>"
+      "<deviceType>%s</deviceType>"
       "<friendlyName>%s</friendlyName>"
       "<presentationURL>%s</presentationURL>"
       "<serialNumber>%s</serialNumber>"
@@ -79,14 +78,9 @@ static const char* _upnp_schema_template =
       "<manufacturer>%s</manufacturer>"
       "<manufacturerURL>%s</manufacturerURL>"
       "<UDN>uuid:%s</UDN>"
-      "<serviceList>"
-      "<service>"
-      "<serviceType>urn:danny-backx-info:service:sensor:1</serviceType>"
-      "<serviceId>urn:danny-backx-info:serviceId:sensor1</serviceId>"
-      "<controlURL>/control</controlURL>"
-      "<eventSubURL>/event</eventSubURL>"
-      "<SCPDURL>/sensor.xml</SCPDURL>"
-      "</service>"
+      "<serviceList>";
+
+static const char *_upnp_device_template_2 =
       "</serviceList>"
     "</device>"
   "</root>\r\n"
@@ -127,8 +121,10 @@ static const char* _upnp_scpd_template =
 void UPnPClass::schema(WiFiClient client) {
   uint32_t ip = WiFi.localIP();
   client.printf(_http_header);
-  client.printf(_upnp_schema_template,
+
+  client.printf(_upnp_device_template_1,
     IP2STR(&ip), device->getPort(),
+    device->getDeviceURN(),
     device->getFriendlyName(),
     device->getPresentationURL(),
     device->getSerialNumber(),
@@ -139,6 +135,10 @@ void UPnPClass::schema(WiFiClient client) {
     device->getManufacturerURL(),
     device->getUuid()
   );
+  char *tmp = services->getServiceXML();
+  if (services)
+    client.print(services->getServiceXML());
+  client.print(_upnp_device_template_2);
 }
 
 void UPnPClass::SCPD(WiFiClient client) {
