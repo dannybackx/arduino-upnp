@@ -31,6 +31,17 @@
 
 static const char *_scpd_xml = "/scpd.xml";
 static const char *_description_xml = "/description.xml";
+static const char *_control_xml = "/control";
+static const char *_event_xml = "/event";
+
+static const char *_get_service_xml_template =
+  "<service>"
+    "<serviceType>%s</serviceType>"
+    "<serviceId>%s</serviceId>"
+    "<controlURL>%s</controlURL>"
+    "<eventSubURL>%s</eventSubURL>"
+    "<SCPDURL>%s</SCPDURL>"
+  "</service>";
 
 UPnPService::UPnPService(const char *serviceType, const char *serviceId) {
   nactions = 0;
@@ -62,15 +73,6 @@ void UPnPService::addStateVariable(const char *name, const char *datatype, boole
   nvariables++;
 }
 
-static const char *_get_service_xml_template =
-  "<service>"
-    "<serviceType>%s</serviceType>"
-    "<serviceId>%s</serviceId>"
-    "<controlURL>/control</controlURL>"
-    "<eventSubURL>/event</eventSubURL>"
-    "<SCPDURL>%s</SCPDURL>"
-  "</service>";
-
 // Caller must free return pointer
 char *UPnPService::getServiceXML() {
   char *r = new char[250];	// FIXME, should 170 + serviceType + serviceId, currently 240 is ok
@@ -78,9 +80,9 @@ char *UPnPService::getServiceXML() {
 #if 1
     /* serviceType */ "urn:danny-backx-info:service:sensor:1",
     /* serviceId */ "urn:danny-backx-info:serviceId:sensor1",
-    _scpd_xml);
+    _control_xml, _event_xml, _scpd_xml);
 #else
-      serviceType, serviceId, _scpd_xml);
+    serviceType, serviceId, _control_xml, _event_xml, _scpd_xml);
 #endif
   return r;
 }
