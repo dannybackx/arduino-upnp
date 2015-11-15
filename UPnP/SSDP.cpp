@@ -36,7 +36,7 @@
 #include "lwip/igmp.h"
 #include "include/UdpContext.h"
 
-#define DEBUG_SSDP  Serial
+//#define DEBUG_SSDP  Serial
 
 #define SSDP_INTERVAL     1200
 #define SSDP_PORT         1900
@@ -47,23 +47,23 @@
 
 static const IPAddress SSDP_MULTICAST_ADDR(239, 255, 255, 250);
 
-static const char* _ssdp_response_template = 
-  "HTTP/1.1 200 OK\r\n"
+static const char *_ssdp_response_template =
+  "HTTP/1.1 200 OK\r\n"	
   "EXT:\r\n"
   "ST: upnp:rootdevice\r\n";
 
-static const char* _ssdp_notify_template = 
+static const char *_ssdp_notify_template =
   "NOTIFY * HTTP/1.1\r\n"
   "HOST: 239.255.255.250:1900\r\n"
   "NT: upnp:rootdevice\r\n"
   "NTS: ssdp:alive\r\n";
 
-static const char* _ssdp_packet_template = 
-  "%s" // _ssdp_response_template / _ssdp_notify_template
-  "CACHE-CONTROL: max-age=%u\r\n" // SSDP_INTERVAL
-  "SERVER: Arduino/1.0 UPNP/1.1 %s/%s\r\n" // _modelName, _modelNumber
-  "USN: uuid:%s\r\n" // _uuid
-  "LOCATION: http://%u.%u.%u.%u:%u/%s\r\n" // WiFi.localIP(), _port, _schemaURL
+static const char *_ssdp_packet_template =
+  "%s"						// _ssdp_response_template / _ssdp_notify_template 
+  "CACHE-CONTROL: max-age=%u\r\n"		// SSDP_INTERVAL
+  "SERVER: Arduino/1.0 UPNP/1.1 %s/%s\r\n"	// _modelName, _modelNumber
+  "USN: uuid:%s\r\n"				// _uuid
+  "LOCATION: http://%u.%u.%u.%u:%u/%s\r\n"	// WiFi.localIP(), _port, _schemaURL
   "\r\n";
 
 struct SSDPTimer {
@@ -71,10 +71,10 @@ struct SSDPTimer {
 };
 
 SSDPClass::SSDPClass() :
-_server(0),
-_port(80),
-_pending(false),
-_timer(new SSDPTimer)
+  _server(0),
+  _port(80),
+  _pending(false),
+  _timer(new SSDPTimer)
 {
 }
 
@@ -130,7 +130,8 @@ bool SSDPClass::begin(UPnPDevice &dev){
 }
 
 void SSDPClass::_send(ssdp_method_t method){
-  char buffer[1460];	// FIXME isn't this too big ?
+  // char buffer[1460];	// FIXME isn't this too big ?
+  char buffer[512];	// FIXME I've seen up to 280 but haven't calculated this
   uint32_t ip = WiFi.localIP();
   
   int len = snprintf(buffer, sizeof(buffer), 
@@ -141,7 +142,7 @@ void SSDPClass::_send(ssdp_method_t method){
     device._uuid,
     IP2STR(&ip), device.getPort(), device.getSchemaURL()
   );
-#ifdef DEBUG_SSDP
+#ifdef DEBUG_SSDPx
   DEBUG_SSDP.printf("SSDPClass::_send() : len %d\n", len);
 #endif
 
@@ -178,9 +179,6 @@ void SSDPClass::_send(ssdp_method_t method){
 // Called periodically from a timer, once per second
 // Also called when a packet is received on the UDP socket
 void SSDPClass::_update(){
-#ifdef DEBUG_SSDPx
-  DEBUG_SSDP.println("SSDPClass::_update()");
-#endif
   // Packet received
   if(!_pending && _server->next()) {
     ssdp_method_t method = NONE;

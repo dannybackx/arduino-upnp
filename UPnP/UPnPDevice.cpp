@@ -32,64 +32,65 @@
 #include "debug.h"
 
 UPnPDevice::UPnPDevice() {
-  _deviceURN[0] = '\0';
-  _uuid[0] = '\0';
-  _modelNumber[0] = '\0';
-  _friendlyName[0] = '\0';
-  _presentationURL[0] = '\0';
-  _serialNumber[0] = '\0';
-  _modelName[0] = '\0';
-  _modelURL[0] = '\0';
-  _manufacturer[0] = '\0';
-  _manufacturerURL[0] = '\0';
-  sprintf(_schemaURL, "ssdp/schema.xml");
+  _deviceURN = 
+  _uuid =
+  _modelNumber =
+  _friendlyName =
+  _presentationURL =
+  _serialNumber =
+  _modelName =
+  _modelURL =
+  _manufacturer =
+  _manufacturerURL = " ";
+
+  _schemaURL = (char *)"ssdp/schema.xml";
 }
 
 UPnPDevice::~UPnPDevice() {
 }
 
-void UPnPDevice::setSchemaURL(const char *url) {
-  strlcpy(_schemaURL, url, sizeof(_schemaURL));
+void UPnPDevice::setSchemaURL(char *url) {
+  _schemaURL = url;
 }
 
 void UPnPDevice::setHTTPPort(uint16_t port){
   _port = port;
 }
 
-void UPnPDevice::setName(const char *name){
-  strlcpy(_friendlyName, name, sizeof(_friendlyName));
+void UPnPDevice::setName(char *name){
+  _friendlyName = name;
 }
 
-void UPnPDevice::setURL(const char *url){
-  strlcpy(_presentationURL, url, sizeof(_presentationURL));
+void UPnPDevice::setURL(char *url){
+  _presentationURL = url;
 }
 
-void UPnPDevice::setSerialNumber(const char *serialNumber){
-  strlcpy(_serialNumber, serialNumber, sizeof(_serialNumber));
+void UPnPDevice::setSerialNumber(char *serialNumber){
+  _serialNumber = serialNumber;
 }
 
-void UPnPDevice::setModelName(const char *name){
-  strlcpy(_modelName, name, sizeof(_modelName));
+void UPnPDevice::setModelName(char *name){
+  _modelName = name;
 }
 
-void UPnPDevice::setModelNumber(const char *num){
-  strlcpy(_modelNumber, num, sizeof(_modelNumber));
+void UPnPDevice::setModelNumber(char *num){
+  _modelNumber = num;
 }
 
-void UPnPDevice::setModelURL(const char *url){
-  strlcpy(_modelURL, url, sizeof(_modelURL));
+void UPnPDevice::setModelURL(char *url){
+  _modelURL = url;
 }
 
-void UPnPDevice::setManufacturer(const char *name){
-  strlcpy(_manufacturer, name, sizeof(_manufacturer));
+void UPnPDevice::setManufacturer(char *name){
+  _manufacturer = name;
 }
 
-void UPnPDevice::setManufacturerURL(const char *url){
-  strlcpy(_manufacturerURL, url, sizeof(_manufacturerURL));
+void UPnPDevice::setManufacturerURL(char *url){
+  _manufacturerURL = url;
 }
 
-void UPnPDevice::setDeviceURN(const char *urn){
-  strlcpy(_deviceURN, urn, sizeof(_deviceURN));
+void UPnPDevice::setDeviceURN(char *urn){
+  _deviceURN = urn;
 }
 
 void UPnPDevice::setPort(uint16_t port) {

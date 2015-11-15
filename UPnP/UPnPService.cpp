@@ -29,16 +29,17 @@
 
 #define	UPNP_DEBUG Serial
 
+static const char *_scpd_xml = "/scpd.xml";
+static const char *_description_xml = "/description.xml";
+
 UPnPService::UPnPService(const char *serviceType, const char *serviceId) {
-#ifdef UPNP_DEBUG
-  UPNP_DEBUG.println("UPnPService ctor");
-#endif
-  this->serviceType = serviceType;
-  this->serviceId = serviceId;
   nactions = 0;
   nvariables = 0;
   actions = new Action [N_ACTIONS];
   variables = new StateVariable [N_VARIABLES];
+
+  this->serviceType = serviceType;
+  this->serviceId = serviceId;
 }
 
 UPnPService::~UPnPService() {
@@ -47,9 +48,6 @@ UPnPService::~UPnPService() {
 }
 
 void UPnPService::addAction(const char *name, ActionFunction handler, const char *xml) {
-#ifdef UPNP_DEBUG
-  UPNP_DEBUG.printf("UPnPService.addAction(%s,_,%s)\n", name, xml);
-#endif
   // FIXME intentionally no bounds checking code
   actions[nactions].name = name;
   actions[nactions].handler = handler;
@@ -58,81 +56,70 @@ void UPnPService::addAction(const char *name, ActionFunction handler, const char
 }
 
 void UPnPService::addStateVariable(const char *name, const char *datatype, boolean sendEvents) {
-#ifdef UPNP_DEBUG
-  UPNP_DEBUG.printf("UPnPService.addStateVariable(%s,%s,%s)\n",
-    name, datatype, sendEvents ? "true" : "false");
-#endif
-
   variables[nvariables].name = name;
   variables[nvariables].dataType = datatype;
   variables[nvariables].sendEvents = sendEvents;
   nvariables++;
 }
 
-#if 0
-/* FIXME there is clearly a problem in this code
- *
- * Sending description.xml ...
- *
- * UPnPService::getServiceXML() 77
- * UPnPService::getServiceXML() 79, r {}
- * UPnPService::getServiceXML() 81, r {<service>}
- * UPnPService::g
- * 
- * Exception (28):
- *
- * epc1=0x4000bf80 epc2=0x00000000 epc3=0x00000000 excvaddr=0x00000000 depc=0x00000000
- *
- * ctx: cont 
- *
- * sp: 3ffed6d0 end: 3ffeda40 offset: 01a0
- *
- * >>>stack>>>
- *
- * 3ffed870:  00000000 ff000000 3ffed940 3ffec9e8  
- * 3ffed880:  40203633 3ffed8e0 3fff55d8 40207e66  
- */
+static const char *_get_service_xml_template =
+  "<service>"
+    "<serviceType>%s</serviceType>"
+    "<serviceId>%s</serviceId>"
+    "<controlURL>/control</controlURL>"
+    "<eventSubURL>/event</eventSubURL>"
+    "<SCPDURL>%s</SCPDURL>"
+  "</service>";
+
+// Caller must free return pointer
 char *UPnPService::getServiceXML() {
-  Serial.printf("UPnPService::getServiceXML() %d\n", __LINE__);
-  char *r = new char[256];	// FIXME
-  Serial.printf("UPnPService::getServiceXML() %d, r {%s}\n", __LINE__, r);
-  strcpy(r, "<service>");
-  Serial.printf("UPnPService::getServiceXML() %d, r {%s}\n", __LINE__, r);
-  strcat(r, "<serviceType>");
-  Serial.printf("UPnPService::getServiceXML() %d, r {%s}\n", __LINE__, r);
-  strcat(r, serviceType);
-  Serial.printf("UPnPService::getServiceXML() %d, r {%s}\n", __LINE__, r);
-  strcat(r, "</serviceType><serviceId>");
-  strcat(r, serviceId);
-  strcat(r, "</serviceId><controlURL>/control</controlURL><eventSubURL>/event</eventSubURL><SCPDURL>/sensor.xml</SCPDURL></service>");
+  char *r = new char[250];	// FIXME, should 170 + serviceType + serviceId, currently 240 is ok
+  sprintf(r, _get_service_xml_template,
+#if 1
+    /* serviceType */ "urn:danny-backx-info:service:sensor:1",
+    /* serviceId */ "urn:danny-backx-info:serviceId:sensor1",
+    _scpd_xml);
+#else
+      serviceType, serviceId, _scpd_xml);
+#endif
   return r;
 }
-#else
-char *UPnPService::getServiceXML() {
-  return "<service><serviceType>urn:danny-backx-info:service:sensor:1</serviceType><serviceId>urn:danny-backx-info:serviceId:sensor1</serviceId><controlURL>/control</controlURL><eventSubURL>/event</eventSubURL><SCPDURL>/sensor.xml</SCPDURL></service>";
-}
-#endif
 
-char * UPnPService::getActionListXML() {
+/*
+char *UPnPService::getServiceXML() {
+  return "<service><serviceType>urn:danny-backx-info:service:sensor:1</serviceType><serviceId>urn:danny-backx-info:serviceId:sensor1</serviceId><controlURL>/control</controlURL><eventSubURL>/event</eventSubURL><SCPDURL>/scpd.xml</SCPDURL></service>";
+}
+/* */
+
+char *UPnPService::getActionListXML() {
   int l = 32;
   int i;
   for (i=0; i<nactions; i++)
     l += strlen(actions[i].xml);
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("getActionListXML : alloc %d\n", l);
+#endif
   char *r = new char[l];	// FIXME
   strcpy(r, "<ActionList>\r\n");
   for (i=0; i<nactions; i++)
     strcat(r, actions[i].xml);
   strcat(r, "</ActionList>\r\n");
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("getActionListXML : len %d\n", strlen(r));
+#endif
   return r;
 }
 
-char * UPnPService::getStateVariableListXML() {
+char *UPnPService::getStateVariableListXML() {
   int l = 40;
   int i;
   for (i=0; i<nvariables; i++) {
     l += variables[i].sendEvents ? 70 : 55;
     l += strlen(variables[i].name) + strlen(variables[i].dataType);
   }
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("getStateVariableListXML : alloc %d\n", l);
+#endif
   char *r = new char[l];	// FIXME
   strcpy(r, "<serviceStateTable>\r\n");
   for (i=0; i<nvariables; i++) {
@@ -147,5 +134,23 @@ char * UPnPService::getStateVariableListXML() {
     strcat(r, "</dataType>");
   }
   strcat(r, "</serviceStateTable>\r\n");
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("getStateVariableListXML : len %d\n", strlen(r));
+#endif
   return r;
+}
+
+extern ESP8266WebServer HTTP;
+
+void SendSCPD() {
+  UPnP.SCPD(HTTP.client());
+}
+
+void SendDescription() {
+  UPnP.schema(HTTP.client());
+}
+
+void UPnPService::begin() {
+  HTTP.on(_scpd_xml, HTTP_GET, SendSCPD);
+  HTTP.on(_description_xml, HTTP_GET, SendDescription);
 }

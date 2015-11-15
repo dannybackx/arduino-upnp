@@ -37,27 +37,15 @@
 
 class UdpContext;
 
-#define SSDP_UUID_SIZE              37
-#define SSDP_SCHEMA_URL_SIZE        64
-#define SSDP_FRIENDLY_NAME_SIZE     64
-#define SSDP_SERIAL_NUMBER_SIZE     32
-#define SSDP_PRESENTATION_URL_SIZE  128
-#define SSDP_MODEL_NAME_SIZE        64
-#define SSDP_MODEL_URL_SIZE         128
-#define SSDP_MODEL_VERSION_SIZE     32
-#define SSDP_MANUFACTURER_SIZE      64
-#define SSDP_MANUFACTURER_URL_SIZE  128
-
 typedef enum {
   NONE,
   SEARCH,
   NOTIFY
 } ssdp_method_t;
 
-
 struct SSDPTimer;
 
-class SSDPClass{
+class SSDPClass {
   public:
     SSDPClass();
     ~SSDPClass();
@@ -82,16 +70,6 @@ class SSDPClass{
     unsigned long _notify_time;
     
     uint16_t _port;
-    //char _schemaURL[SSDP_SCHEMA_URL_SIZE];
-    //char _uuid[SSDP_UUID_SIZE];
-    //char _friendlyName[SSDP_FRIENDLY_NAME_SIZE];
-    //char _serialNumber[SSDP_SERIAL_NUMBER_SIZE];
-    //char _presentationURL[SSDP_PRESENTATION_URL_SIZE];
-    //char _manufacturer[SSDP_MANUFACTURER_SIZE];
-    //char _manufacturerURL[SSDP_MANUFACTURER_URL_SIZE];
-    //char _modelName[SSDP_MODEL_NAME_SIZE];
-    //char _modelURL[SSDP_MODEL_URL_SIZE];
-    //char _modelNumber[SSDP_MODEL_VERSION_SIZE];
 
   private:
     UPnPDevice device;

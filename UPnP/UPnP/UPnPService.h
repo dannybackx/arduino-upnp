@@ -50,9 +50,11 @@ class UPnPService {
 
     void addAction(const char *name, ActionFunction handler, const char *xml);
     void addStateVariable(const char *name, const char *datatype, boolean sendEvents);
+    void VariableChanged(const char *name, const char *value);
     char *getActionListXML();
     char *getStateVariableListXML();
     char *getServiceXML();
+    void begin();
 
   private:
 

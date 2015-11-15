@@ -47,12 +47,11 @@ UPnPClass::~UPnPClass() {
 }
 
 void UPnPClass::begin(ESP8266WebServer *http, UPnPDevice *device) {
-  Serial.printf("UPnP begin(%p, %p)\n", http, device);
   this->device = device;
   this->http = http;
 }
 
-static const char* _http_header = 
+static const char *_http_header =
   "HTTP/1.1 200 OK\r\n"
   "Content-Type: text/xml\r\n"
   "Connection: close\r\n"
@@ -66,7 +65,7 @@ static const char *_upnp_device_template_1 =
       "<major>1</major>"
       "<minor>0</minor>"
     "</specVersion>"
-    "<URLBase>http://%u.%u.%u.%u:%u/</URLBase>" // WiFi.localIP(), _port
+    "<URLBase>http://%u.%u.%u.%u:%u/</URLBase>" /* WiFi.localIP(), _port */
     "<device>"
       "<deviceType>%s</deviceType>"
       "<friendlyName>%s</friendlyName>"
@@ -86,7 +85,7 @@ static const char *_upnp_device_template_2 =
   "</root>\r\n"
   "\r\n";
 
-static const char* _upnp_scpd_template = 
+static const char *_upnp_scpd_template =
   "<?xml version=\"1.0\"?>"
   "<scpd xmlns=\"urn:danny-backx-info:service-1-0\">"
   "<specVersion>"
@@ -116,7 +115,6 @@ static const char* _upnp_scpd_template =
   "</scpd>\r\n"
   "\r\n";
 
-
 // Called by HTTP server when our description XML is queried
 void UPnPClass::schema(WiFiClient client) {
   uint32_t ip = WiFi.localIP();
@@ -135,21 +133,20 @@ void UPnPClass::schema(WiFiClient client) {
     device->getManufacturerURL(),
     device->getUuid()
   );
-  char *tmp = services->getServiceXML();
-  if (services)
-    client.print(services->getServiceXML());
+  if (services) {
+    char *tmp = services->getServiceXML();
+    client.print(tmp);
+    free(tmp);
+  }
   client.print(_upnp_device_template_2);
 }
 
 void UPnPClass::SCPD(WiFiClient client) {
   uint32_t ip = WiFi.localIP();
-  client.printf(_http_header);
-  client.printf(_upnp_scpd_template);
+  client.print(_http_header);
+  client.print(_upnp_scpd_template);
 }
 
 void UPnPClass::addService(UPnPService *srv) {
-#ifdef DEBUG
-  DEBUG.println("UPnPClass::addService()");
-#endif
   this->services = srv;
 }
