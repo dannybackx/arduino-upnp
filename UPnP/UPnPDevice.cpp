@@ -31,6 +31,8 @@
 #include "UPnP/UPnPDevice.h"
 #include "debug.h"
 
+#define DEBUG_UPNP	Serial
+
 UPnPDevice::UPnPDevice() {
   _deviceURN = 
   _uuid =
@@ -47,6 +49,9 @@ UPnPDevice::UPnPDevice() {
 }
 
 UPnPDevice::~UPnPDevice() {
+#ifdef DEBUG_UPNP
+  DEBUG_UPNP.printf("UPnPDevice DTOR\n");
+#endif
 }
 
 void UPnPDevice::setSchemaURL(char *url) {

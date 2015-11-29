@@ -79,6 +79,10 @@ SSDPClass::SSDPClass() :
 }
 
 SSDPClass::~SSDPClass(){
+#ifdef DEBUG_SSDP
+  DEBUG_SSDP.printf("SSDP DTOR\n");
+#endif
+
   delete _timer;
 }
 

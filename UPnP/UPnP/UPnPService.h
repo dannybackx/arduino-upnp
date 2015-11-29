@@ -55,15 +55,20 @@ class UPnPService {
     char *getStateVariableListXML();
     char *getServiceXML();
     void begin();
+    Action *findAction(const char *);
+    static void EventHandler();
+
+    int nactions, nvariables;
+    Action *actions;
+    StateVariable *variables;
+
+    const char *serviceId;
+    const char *serviceType;
 
   private:
 
   protected:
-    const char *serviceId;
-    const char *serviceType;
-    int nactions, nvariables;
-    Action *actions;
-    StateVariable *variables;
+
 };
 
 #endif

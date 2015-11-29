@@ -4,7 +4,7 @@
 #include <UPnP.h>
 #include <UPnP/SSDP.h>
 #include "MotionSensorService.h"
-//#include "GDBStub.h"
+// #include "GDBStub.h"
 
 // Stuff to sync this source file in github
 // Provide a "mywifi.h" file that defines the two macros below
@@ -19,15 +19,16 @@ const char* password = MY_WIFI_PASSWORD;
 
 // const char *serviceType = "urn:danny-backx-info:service:sensor:1";
 // const char *serviceId = "urn:danny-backx-info:serviceId:sensor1";
-const char *deviceURN = "urn:schemas-upnp-org:device:Basic:1";
+char *deviceURN = "urn:schemas-upnp-org:device:Basic:1";
 
 ESP8266WebServer HTTP(80);
 UPnPDevice device;
 // UPnPClass UPnP;
 
+    
 void setup() {
   Serial.begin(115200);
-  Serial.println();
+//  Serial.println();
   Serial.printf("Boot version %d\n", ESP.getBootVersion());
   Serial.printf("Flash chip Real size %d, size %d\n", ESP.getFlashChipRealSize(), ESP.getFlashChipSize());
   Serial.printf("SDK version %s\n", ESP.getSdkVersion());
@@ -46,18 +47,9 @@ void setup() {
 
     Serial.printf("Starting HTTP...\n");
     HTTP.on("/index.html", HTTP_GET, [](){
-      Serial.println("Sending hello");
+      // Serial.println("Sending hello");
       HTTP.send(200, "text/plain", "Hello World!");
-      Serial.println("Hello ok");
-    });
-    HTTP.on("/description.xml", HTTP_GET, [](){
-      Serial.println("Sending description.xml ...");
-      UPnP.schema(HTTP.client());
-      Serial.println("... description.xml ok");
-    });
-    HTTP.on("/event", eventHandler);
-    HTTP.on("/sensor.xml", HTTP_GET, []() {
-      UPnP.SCPD(HTTP.client());
+      // Serial.println("Hello ok");
     });
     HTTP.begin();
 
@@ -76,39 +68,31 @@ void setup() {
     SSDP.begin(device);
 
     UPnP.begin(&HTTP, &device);
-
-    MotionSensorService srv = MotionSensorService();
-    UPnP.addService(&srv);
+#ifdef MSS_GLOBAL
+    MSS = MotionSensorService();
+    UPnP.addService(&MSS);
+    
+    Serial.printf("Ready!\n");
+#else
+    MotionSensorService ms_srv = MotionSensorService();
+    UPnP.addService(&ms_srv);
 
     Serial.printf("Ready!\n");
+    while (1) {
+      HTTP.handleClient();
+      delay(10);
+    }
+#endif
   } else {
     Serial.printf("WiFi Failed\n");
     while(1) delay(100);
   }
 
+  
 }
 
 void loop() {
   HTTP.handleClient();
   // Serial.printf("Called handleClient()...\n");
   delay(10);
-}
-
-// This is a hack to demonstrate
-// TODO : decode the request, see if it is one we want to answer
-// TODO : the actual response needs to come from the (MotionSensor)Service class
-void eventHandler() {
-  Serial.println("eventHandler");
-
-  // Assumption that we get called with a GetState action
-  HTTP.send(200, "text/xml; charset=\"utf-8\"",
-    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n"
-      "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">\r\n"
-      "<s:body>\r\n"
-      "<u:GetStateResponse xmlns=\"urn:danny-backx-info:service:sensor:1\">\r\n"
-      "<State>0</State>\r\n"
-      "</u:GetStateResponse>\r\n"
-      "</s:body>\r\n"    
-      "</s:Envelope>\r\n"
-    );
 }

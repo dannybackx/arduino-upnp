@@ -37,6 +37,8 @@ extern "C" {
   #include "user_interface.h"
 }
 
+#define	DEBUG_UPNP	Serial
+
 UPnPClass UPnP;	// FIXME
 
 UPnPClass::UPnPClass() {
@@ -44,6 +46,9 @@ UPnPClass::UPnPClass() {
 }
 
 UPnPClass::~UPnPClass() {
+#ifdef DEBUG_UPNP
+  DEBUG_UPNP.printf("UPnPClass DTOR\n");
+#endif
 }
 
 void UPnPClass::begin(ESP8266WebServer *http, UPnPDevice *device) {
@@ -134,6 +139,7 @@ void UPnPClass::schema(WiFiClient client) {
     device->getUuid()
   );
   if (services) {
+    // Need to free
     char *tmp = services->getServiceXML();
     client.print(tmp);
     free(tmp);
