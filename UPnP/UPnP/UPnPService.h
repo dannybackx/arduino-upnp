@@ -25,7 +25,7 @@
 #define	__UPnPService_H_
 
 #include "debug.h"
-#include "ESP8266WebServer.h"
+#include "UPnP/WebServer.h"
 
 #define	N_ACTIONS	4
 #define	N_VARIABLES	4

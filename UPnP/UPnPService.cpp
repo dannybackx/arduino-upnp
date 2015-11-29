@@ -142,7 +142,7 @@ char *UPnPService::getStateVariableListXML() {
   return r;
 }
 
-extern ESP8266WebServer HTTP;
+extern WebServer HTTP;
 UPnPService *srv;
 
 void SendSCPD() {
@@ -163,7 +163,9 @@ static int myindex(const char *ptr, char c) {
 }
 
 Action * UPnPService::findAction(const char *name) {
-  Serial.printf("findAction(%s)\n", name);
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("findAction(%s)\n", name);
+#endif
   int i;
   for (i=0; i<nactions; i++) {
     if (strcasecmp(name, actions[i].name) == 0)
@@ -178,25 +180,33 @@ void UPnPService::EventHandler() {
   // HTTP.argName(0) --> <?xml version
   // HTTP.arg(0) --> "1.0" encoding="utf-8?><s:Envelope xmlns:s="http://schemas.xmlsoap.org...
   // so we only need HTTP.arg(0)
-  Serial.print("GetFreeHeap1 : "); Serial.println(ESP.getFreeHeap());
-  if (HTTP.args() == 0)
-    return;	// empty request ? silently return
-  Serial.print("GetFreeHeap2 : "); Serial.println(ESP.getFreeHeap());
-  String xmls = HTTP.arg(0);
-  Serial.print("GetFreeHeap3 : "); Serial.println(ESP.getFreeHeap());
-  int body1 = xmls.indexOf("<s:Body>");
-  int body2 = xmls.indexOf("</s:Body>");
-  if (body1 < 0 || body2 < 0 || body2 <= body1)
-    return;	// Again, silently return
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.print("GetFreeHeap1 : "); UPNP_DEBUG.println(ESP.getFreeHeap());
+#endif
 
-  const char *xml = xmls.substring(body1+8, body2).c_str(),
-             *x3 = xml + 3;
-  //delete xmls;
-  Serial.printf("EventHandler(%s)\n", xml);
+  const char *msg = HTTP.plainBuf;
+#ifdef UPNP_DEBUGx
+  UPNP_DEBUG.printf("Message len %d : >>>> %s <<<<\n", HTTP.plainLen, msg);
+#endif
+  const char *body1 = strstr(msg, "<s:Body>");
+  const char *body2 = strstr(msg, "</s:Body>");
+  if (body2 < body1)
+    return;	// Silently return
+
+  body1 += 8;	// bypass <s:Body>
+  int bodylen = (body2 - body1);
+  char *xml = (char *)malloc(bodylen+1);
+  strncpy(xml, body1, bodylen);
+  xml[bodylen] = '\0';
+#ifdef UPNP_DEBUGx
+  UPNP_DEBUG.printf("Body : >>>> %s <<<<\n", xml);
+#endif
 
   // <u:getState xmlns:u = "urn:upnp-org:serviceId:ContentDirectory"></u:getState>
-  if (xml[0] != '<' || xml[1] != 'u' || xml[2] != ':')
+  if (xml[0] != '<' || xml[1] != 'u' || xml[2] != ':') {
+    free(xml);
     return;
+  }
   // We're guessing an action name ends with a space or a >
   int s1 = myindex(xml, ' '),
       s2 = myindex(xml, '>');
@@ -204,45 +214,36 @@ void UPnPService::EventHandler() {
   char *action = new char[space-2];
   strncpy(action, xml+3, space-3);
   action[space-3] = '\0';
-  Serial.printf("EventHandler action(%s)\n", action);
+  free(xml);
 
-  Serial.printf("EventHandler srv(%p)\n", srv);
-  Serial.printf("EventHandler actions [0] (%p,%s)\n", srv->actions[0].name, srv->actions[0].name);
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("EventHandler action(%s)\n", action);
+
+  UPNP_DEBUG.printf("EventHandler srv(%p)\n", srv);
+  UPNP_DEBUG.printf("EventHandler actions [0] (%p,%s)\n", srv->actions[0].name, srv->actions[0].name);
 
 
-  Serial.print("GetChipId : "); Serial.println(ESP.getChipId());
-  Serial.print("GetFlashChipId : "); Serial.println(ESP.getFlashChipId());
-  Serial.print("GetFreeHeap : "); Serial.println(ESP.getFreeHeap());
-  //Serial.println(" ");
+  UPNP_DEBUG.print("GetChipId : "); UPNP_DEBUG.println(ESP.getChipId());
+  UPNP_DEBUG.print("GetFlashChipId : "); UPNP_DEBUG.println(ESP.getFlashChipId());
+  UPNP_DEBUG.print("GetFreeHeap : "); UPNP_DEBUG.println(ESP.getFreeHeap());
+  // UPNP_DEBUG.printf("EventHandler actions [0] (%p)\n", srv->actions[0].name);
+#endif
 
-  // Serial.printf("EventHandler actions [0] (%p)\n", srv->actions[0].name);
-  // Action *pAction = srv->findAction("GetState");
   Action *pAction = srv->findAction(action);
-
   free(action);
   if (pAction == 0)
     return;
 
-  Serial.printf("Have it ... %s\n", pAction->name);
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("Have it ... %s\n", pAction->name);
+#endif
   ActionFunction fn = pAction->handler;
  
-  Serial.printf("Function ptr ... %p\n", fn);
-
-#if 1
-  Serial.printf("Call it ...\n");
-  (*fn)();
-#else
-  HTTP.send(200, "text/xml; charset=\"utf-8\"",
-    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n"
-    "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">\r\n"
-    "<s:body>\r\n"
-    "<u:GetStateResponse xmlns=\"urn:danny-backx-info:service:sensor:1\">\r\n"
-    "<State>0</State>\r\n"
-    "</u:GetStateResponse>\r\n"
-    "</s:body>\r\n"    
-    "</s:Envelope>\r\n"
-   );
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("Function ptr ... %p\n", fn);
 #endif
+
+  (*fn)();
 }
 
 void UPnPService::begin() {
@@ -250,5 +251,7 @@ void UPnPService::begin() {
   HTTP.on(_description_xml, HTTP_GET, SendDescription);
   HTTP.on(_event_xml, UPnPService::EventHandler);
   srv = this;
-  Serial.printf("UPnPService::begin(), this %p, srv %p\n", this, srv);
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("UPnPService::begin(), this %p, srv %p\n", this, srv);
+#endif
 }

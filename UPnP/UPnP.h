@@ -34,17 +34,16 @@
 #include "UPnP/SSDP.h"
 #include "WiFiUdp.h"
 #include "UPnP/UPnPService.h"
-#include "ESP8266WebServer.h"
+#include "UPnP/WebServer.h"
 
 #define	N_SERVICES	4
 
 class UPnPClass {
   public:
     UPnPClass();
-    //UPnPClass(ESP8266WebServer *http);
     ~UPnPClass();
     //void begin(UPnPDevice &device);
-    void begin(ESP8266WebServer *http, UPnPDevice *device);
+    void begin(WebServer *http, UPnPDevice *device);
 
     void setSchemaURL(const char *url);
     void setHTTPPort(uint16_t port);
@@ -68,7 +67,7 @@ class UPnPClass {
 
   private:
     UPnPDevice *device;
-    ESP8266WebServer *http;
+    WebServer *http;
 
   protected:
     UPnPService *services;

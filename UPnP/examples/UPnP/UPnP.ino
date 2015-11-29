@@ -1,5 +1,5 @@
 #include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
+#include <UPnP/WebServer.h>
 #include <UPnP/UPnPDevice.h>
 #include <UPnP.h>
 #include <UPnP/SSDP.h>
@@ -21,11 +21,10 @@ const char* password = MY_WIFI_PASSWORD;
 // const char *serviceId = "urn:danny-backx-info:serviceId:sensor1";
 char *deviceURN = "urn:schemas-upnp-org:device:Basic:1";
 
-ESP8266WebServer HTTP(80);
+WebServer HTTP(80);
 UPnPDevice device;
 // UPnPClass UPnP;
 
-    
 void setup() {
   Serial.begin(115200);
 //  Serial.println();
@@ -87,8 +86,6 @@ void setup() {
     Serial.printf("WiFi Failed\n");
     while(1) delay(100);
   }
-
-  
 }
 
 void loop() {

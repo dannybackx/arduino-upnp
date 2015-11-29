@@ -31,7 +31,7 @@
 #include "Arduino.h"
 #include "UPnP.h"
 #include "debug.h"
-#include "ESP8266WebServer.h"
+#include "UPnP/WebServer.h"
 
 extern "C" {
   #include "user_interface.h"
@@ -51,7 +51,7 @@ UPnPClass::~UPnPClass() {
 #endif
 }
 
-void UPnPClass::begin(ESP8266WebServer *http, UPnPDevice *device) {
+void UPnPClass::begin(WebServer *http, UPnPDevice *device) {
   this->device = device;
   this->http = http;
 }
