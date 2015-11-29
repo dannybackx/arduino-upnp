@@ -156,3 +156,12 @@ void UPnPClass::SCPD(WiFiClient client) {
 void UPnPClass::addService(UPnPService *srv) {
   this->services = srv;
 }
+
+const char *UPnPClass::mimeType = "text/xml; charset=\"utf-8\"";
+const char *UPnPClass::envelopeHeader = 
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n"
+    "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">\r\n"
+    "<s:body>\r\n";
+const char *UPnPClass::envelopeTrailer = 
+    "</s:body>\r\n"    
+    "</s:Envelope>\r\n";

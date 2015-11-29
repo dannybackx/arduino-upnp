@@ -30,7 +30,7 @@
 #define	N_ACTIONS	4
 #define	N_VARIABLES	4
 
-typedef void (*ActionFunction)(ESP8266WebServer);
+typedef void (*ActionFunction)();
 
 typedef struct {
   const char *name;

@@ -83,25 +83,15 @@ void UPnPService::addStateVariable(const char *name, const char *datatype, boole
 // Caller must free return pointer
 char *UPnPService::getServiceXML() {
   char *r = new char[250];	// FIXME, should 170 + serviceType + serviceId, currently 240 is ok
+
   sprintf(r, _get_service_xml_template,
-#if 0
-    /* serviceType */ "urn:danny-backx-info:service:sensor:1",
-    /* serviceId */ "urn:danny-backx-info:serviceId:sensor1",
-    _control_xml, _event_xml, _scpd_xml);
-#else
     serviceType, serviceId, _control_xml, _event_xml, _scpd_xml);
-#endif
-#ifdef UPNP_DEBUG
+
+#ifdef UPNP_DEBUGx
   UPNP_DEBUG.printf("getServiceXML -> %s\n", r);
 #endif
   return r;
 }
-
-/*
-char *UPnPService::getServiceXML() {
-  return "<service><serviceType>urn:danny-backx-info:service:sensor:1</serviceType><serviceId>urn:danny-backx-info:serviceId:sensor1</serviceId><controlURL>/control</controlURL><eventSubURL>/event</eventSubURL><SCPDURL>/scpd.xml</SCPDURL></service>";
-}
-/* */
 
 char *UPnPService::getActionListXML() {
   int l = 32;
@@ -237,12 +227,11 @@ void UPnPService::EventHandler() {
   ActionFunction fn = pAction->handler;
  
   Serial.printf("Function ptr ... %p\n", fn);
-  /*
-  Serial.printf("Call it ...\n");
-  (*fn)(HTTP);
-  return;
 
-  /* */
+#if 1
+  Serial.printf("Call it ...\n");
+  (*fn)();
+#else
   HTTP.send(200, "text/xml; charset=\"utf-8\"",
     "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n"
     "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">\r\n"
@@ -253,7 +242,7 @@ void UPnPService::EventHandler() {
     "</s:body>\r\n"    
     "</s:Envelope>\r\n"
    );
-   /* */
+#endif
 }
 
 void UPnPService::begin() {

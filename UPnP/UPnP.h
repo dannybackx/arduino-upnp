@@ -62,6 +62,10 @@ class UPnPClass {
 
     void addService(UPnPService *service);
 
+    static const char *mimeType;
+    static const char *envelopeHeader;
+    static const char *envelopeTrailer;
+
   private:
     UPnPDevice *device;
     ESP8266WebServer *http;
