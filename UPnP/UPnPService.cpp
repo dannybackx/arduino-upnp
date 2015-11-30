@@ -27,7 +27,12 @@
 #include "Arduino.h"
 #include "UPnP.h"
 
+//#undef	UPNP_DEBUG
 #define	UPNP_DEBUG Serial
+#undef	UPNP_DEBUGx
+//#define	UPNP_DEBUGx Serial
+#undef UPNP_DEBUGmem
+//#define UPNP_DEBUGmem Serial
 
 static const char *_scpd_xml = "/scpd.xml";
 static const char *_description_xml = "/description.xml";
@@ -61,6 +66,18 @@ UPnPService::~UPnPService() {
   delete variables;
 }
 
+// Pointer to a member function
+void UPnPService::addAction(const char *name, MemberActionFunction handler, const char *xml) {
+  // FIXME intentionally no bounds checking code
+  actions[nactions].name = name;
+  actions[nactions].mhandler = handler;
+  actions[nactions].sensor = this;
+  actions[nactions].xml = xml;
+  actions[nactions].handler = NULL;
+  nactions++;
+}
+
+// Pointer to a static function
 void UPnPService::addAction(const char *name, ActionFunction handler, const char *xml) {
   // FIXME intentionally no bounds checking code
   actions[nactions].name = name;
@@ -70,6 +87,8 @@ void UPnPService::addAction(const char *name, ActionFunction handler, const char
   UPNP_DEBUG.printf("UPnPService::addAction[%d](%p - %s,_,%p - %s)\n", nactions, name, name, xml, xml);
   UPNP_DEBUG.printf("UPnPService::addAction -> (%p - %s,_,%p - %s)\n", actions[0].name, actions[0].name, actions[0].xml, actions[0].xml);
 #endif
+  actions[nactions].mhandler = NULL;
+  actions[nactions].sensor = NULL;
   nactions++;
 }
 
@@ -82,7 +101,9 @@ void UPnPService::addStateVariable(const char *name, const char *datatype, boole
 
 // Caller must free return pointer
 char *UPnPService::getServiceXML() {
-  char *r = new char[250];	// FIXME, should 170 + serviceType + serviceId, currently 240 is ok
+  int len = strlen(_get_service_xml_template) + strlen(serviceType) + strlen(serviceId)
+          + strlen(_control_xml) + strlen(_event_xml) + strlen(_scpd_xml);
+  char *r = (char *)malloc(len);
 
   sprintf(r, _get_service_xml_template,
     serviceType, serviceId, _control_xml, _event_xml, _scpd_xml);
@@ -93,19 +114,22 @@ char *UPnPService::getServiceXML() {
   return r;
 }
 
+static const char *_actionListBegin = "<ActionList>\r\n";
+static const char *_actionListEnd = "</ActionList>\r\n";
+
 char *UPnPService::getActionListXML() {
-  int l = 32;
+  int l = strlen(_actionListBegin) + strlen(_actionListEnd) + 4;
   int i;
   for (i=0; i<nactions; i++)
     l += strlen(actions[i].xml);
 #ifdef UPNP_DEBUG
   UPNP_DEBUG.printf("getActionListXML : alloc %d\n", l);
 #endif
-  char *r = new char[l];	// FIXME
-  strcpy(r, "<ActionList>\r\n");
+  char *r = (char *)malloc(l);
+  strcpy(r, _actionListBegin);
   for (i=0; i<nactions; i++)
     strcat(r, actions[i].xml);
-  strcat(r, "</ActionList>\r\n");
+  strcat(r, _actionListEnd);
 #ifdef UPNP_DEBUG
   UPNP_DEBUG.printf("getActionListXML : len %d\n", strlen(r));
 #endif
@@ -163,7 +187,7 @@ static int myindex(const char *ptr, char c) {
 }
 
 Action * UPnPService::findAction(const char *name) {
-#ifdef UPNP_DEBUG
+#ifdef UPNP_DEBUGx
   UPNP_DEBUG.printf("findAction(%s)\n", name);
 #endif
   int i;
@@ -180,8 +204,8 @@ void UPnPService::EventHandler() {
   // HTTP.argName(0) --> <?xml version
   // HTTP.arg(0) --> "1.0" encoding="utf-8?><s:Envelope xmlns:s="http://schemas.xmlsoap.org...
   // so we only need HTTP.arg(0)
-#ifdef UPNP_DEBUG
-  UPNP_DEBUG.print("GetFreeHeap1 : "); UPNP_DEBUG.println(ESP.getFreeHeap());
+#ifdef UPNP_DEBUGmem
+  UPNP_DEBUGmem.print("GetFreeHeap1 : "); UPNP_DEBUG.println(ESP.getFreeHeap());
 #endif
 
   const char *msg = HTTP.plainBuf;
@@ -216,7 +240,7 @@ void UPnPService::EventHandler() {
   action[space-3] = '\0';
   free(xml);
 
-#ifdef UPNP_DEBUG
+#ifdef UPNP_DEBUGx
   UPNP_DEBUG.printf("EventHandler action(%s)\n", action);
 
   UPNP_DEBUG.printf("EventHandler srv(%p)\n", srv);
@@ -225,8 +249,10 @@ void UPnPService::EventHandler() {
 
   UPNP_DEBUG.print("GetChipId : "); UPNP_DEBUG.println(ESP.getChipId());
   UPNP_DEBUG.print("GetFlashChipId : "); UPNP_DEBUG.println(ESP.getFlashChipId());
-  UPNP_DEBUG.print("GetFreeHeap : "); UPNP_DEBUG.println(ESP.getFreeHeap());
   // UPNP_DEBUG.printf("EventHandler actions [0] (%p)\n", srv->actions[0].name);
+#endif
+#ifdef UPNP_DEBUGmem
+  UPNP_DEBUGmem.print("GetFreeHeap : "); UPNP_DEBUG.println(ESP.getFreeHeap());
 #endif
 
   Action *pAction = srv->findAction(action);
@@ -234,16 +260,17 @@ void UPnPService::EventHandler() {
   if (pAction == 0)
     return;
 
-#ifdef UPNP_DEBUG
-  UPNP_DEBUG.printf("Have it ... %s\n", pAction->name);
-#endif
+  // Two cases : a static handler function, or a pointer to a member function
   ActionFunction fn = pAction->handler;
- 
-#ifdef UPNP_DEBUG
-  UPNP_DEBUG.printf("Function ptr ... %p\n", fn);
-#endif
+  MemberActionFunction mfn = pAction->mhandler;
+  UPnPService *sensor = pAction->sensor;
 
-  (*fn)();
+  if (mfn != NULL && sensor != NULL) {
+    (sensor->*mfn)();
+  } else if (fn != NULL) {
+    (*fn)();
+  }
+  // else silently ignore again
 }
 
 void UPnPService::begin() {

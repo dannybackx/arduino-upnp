@@ -25,12 +25,37 @@
  *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *   THE SOFTWARE.
  */
+#ifndef _INCLUDE_MOTION_SENSOR_SERVICE_H_
+#define _INCLUDE_MOTION_SENSOR_SERVICE_H_
 
 #include "UPnP.h"
 #include "UPnP/UPnPService.h"
+#include <UPnP/WebServer.h>
+
+#define MSS_STATE_LENGTH  16
+
+//class MotionSensorService;
+//typedef void (MotionSensorService::*MActionFunction)();
 
 class MotionSensorService : public UPnPService {
   public:
-    MotionSensorService(String serviceType, String serviceId);
+    MotionSensorService();
+    MotionSensorService(const char *deviceURN);
+    MotionSensorService(const char *serviceType, const char *serviceId);
     ~MotionSensorService();
+    void begin();
+    const char *GetState();
+    void GetStateHandler();
+    
+  private:
+    char state[MSS_STATE_LENGTH];
+    WebServer *http;
 };
+
+#undef MSS_GLOBAL
+
+#ifdef MSS_GLOBAL
+extern MotionSensorService MSS;
+#endif
+
+#endif /* _INCLUDE_MOTION_SENSOR_SERVICE_H_ */

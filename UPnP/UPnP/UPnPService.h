@@ -30,11 +30,15 @@
 #define	N_ACTIONS	4
 #define	N_VARIABLES	4
 
+class UPnPService;
+typedef void (UPnPService::*MemberActionFunction)();
 typedef void (*ActionFunction)();
 
 typedef struct {
   const char *name;
+  UPnPService *sensor;
   ActionFunction handler;
+  MemberActionFunction mhandler;
   const char *xml;
 } Action;
 
@@ -48,7 +52,13 @@ class UPnPService {
     UPnPService(const char *serviceType, const char *serviceId);
     ~UPnPService();
 
+    // Use the XML to publish a callable action
+    // If it is called (via a UPnP query to our web server), call the handler function.
+    // There are two types of handler functions : a member function, or a static function.
     void addAction(const char *name, ActionFunction handler, const char *xml);
+    void addAction(const char *name, MemberActionFunction handler, const char *xml);
+
+    // Define a state variable
     void addStateVariable(const char *name, const char *datatype, boolean sendEvents);
     void VariableChanged(const char *name, const char *value);
     char *getActionListXML();
@@ -64,6 +74,9 @@ class UPnPService {
 
     const char *serviceId;
     const char *serviceType;
+
+    // Test
+    void yeahHandler();
 
   private:
 
