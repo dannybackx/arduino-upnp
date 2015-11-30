@@ -37,13 +37,13 @@ Sample queries are provided in examples/UPnP/scripts . Note that the getVersion 
 This is the output of the example that does produce sensible XML :
 <pre><code>
   Query 192.168.1.100 ...
-  <?xml version="1.0" encoding="utf-8"?>
-  <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
-  <s:body>
-  <u:GetStateResponse xmlns="urn:danny-backx-info:service:sensor:1">
-  <State></State>
-  </u:GetStateResponse>
-  </s:body>
-  </s:Envelope>
+  &lt;?xml version="1.0" encoding="utf-8"?&gt;
+  &lt;s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&gt;
+  &lt;s:body&gt;
+  &lt;u:GetStateResponse xmlns="urn:danny-backx-info:service:sensor:1"&gt;
+  &lt;State&gt;&lt;/State&gt;
+  &lt;/u:GetStateResponse&gt;
+  &lt;/s:body&gt;
+  &lt;/s:Envelope&gt;
 </code></pre>
 The only hardware you need for this is an ESP8266 device and a motion sensor.
