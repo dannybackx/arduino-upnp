@@ -32,6 +32,7 @@
 #include "UPnP/WebServer.h"
 
 extern WebServer HTTP;
+static void GetVersion();
 
 #define DEBUG Serial
 
@@ -50,16 +51,35 @@ static const char *getStateXML = "<action>"
   "</argumentList>"
   "</action>";
 
+static const char *getVersionXML = "<action>"
+  "<name>getVersion</name>"
+  "<argumentList>"
+  "<argument>"
+  "<retval/>"
+  "<name>Version</name>"
+  "<direction>out</direction>"
+  "</argument>"
+  "</argumentList>"
+  "</action>";
+
+// These are static/global variables as a demo that you can query such variables.
+static const char *versionTemplate = "%s %s %s\n";
+static const char *versionFileInfo = __FILE__;
+static const char *versionDateInfo = __DATE__;
+static const char *versionTimeInfo = __TIME__;
+
 static const char *myServiceType = "urn:danny-backx-info:service:sensor:1";
 static const char *myServiceId = "urn:danny-backx-info:serviceId:sensor1";
 static const char *stateString = "State";
 static const char *getStateString = "getState";
+static const char *getVersionString = "getVersion";
 static const char *stringString = "string";
 
 MotionSensorService::MotionSensorService() :
   UPnPService(myServiceType, myServiceId)
 {
   addAction(getStateString, static_cast<MemberActionFunction>(&MotionSensorService::GetStateHandler), getStateXML);
+  addAction(getVersionString, GetVersion, getVersionXML);
   addStateVariable(stateString, stringString, true);
   begin();
 }
@@ -68,6 +88,7 @@ MotionSensorService::MotionSensorService(const char *deviceURN) :
   UPnPService(myServiceType, myServiceId)
 {
   addAction(getStateString, static_cast<MemberActionFunction>(&MotionSensorService::GetStateHandler), getStateXML);
+  addAction(getVersionString, GetVersion, getVersionXML);
   addStateVariable(stateString, stringString, true);
   begin();
 }
@@ -76,6 +97,7 @@ MotionSensorService::MotionSensorService(const char *serviceType, const char *se
   UPnPService(serviceType, serviceId)
 {
   addAction(getStateString, static_cast<MemberActionFunction>(&MotionSensorService::GetStateHandler), getStateXML);
+  addAction(getVersionString, GetVersion, getVersionXML);
   addStateVariable(stateString, stringString, true);
   begin();
 }
@@ -102,8 +124,10 @@ const char *MotionSensorService::GetState() {
 }
 
 // Example of a static function to handle UPnP requests : only access to global variables here.
-static void StaticHandler() {
-
+static void GetVersion() {
+  char msg[128];
+  sprintf(msg, versionTemplate, versionFileInfo, versionDateInfo, versionTimeInfo);
+  HTTP.send(200, UPnPClass::mimeType, msg);
 }
 
 // Example of a member function to handle UPnP requests : this can access stuff in the class

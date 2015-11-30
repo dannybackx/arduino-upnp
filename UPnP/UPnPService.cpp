@@ -68,6 +68,9 @@ UPnPService::~UPnPService() {
 
 // Pointer to a member function
 void UPnPService::addAction(const char *name, MemberActionFunction handler, const char *xml) {
+#ifdef UPNP_DEBUGx
+  UPNP_DEBUG.printf("UPnPService::addAction[%d](%s,%p %s)\n", nactions, name, xml, xml);
+#endif
   // FIXME intentionally no bounds checking code
   actions[nactions].name = name;
   actions[nactions].mhandler = handler;
@@ -79,14 +82,14 @@ void UPnPService::addAction(const char *name, MemberActionFunction handler, cons
 
 // Pointer to a static function
 void UPnPService::addAction(const char *name, ActionFunction handler, const char *xml) {
+#ifdef UPNP_DEBUGx
+  UPNP_DEBUG.printf("UPnPService::addAction[%d](%s,%p %s)\n", nactions, name, xml, xml);
+  //UPNP_DEBUG.printf("UPnPService::addAction[%d](%s,%s)\n", nactions, name, xml);
+#endif
   // FIXME intentionally no bounds checking code
   actions[nactions].name = name;
   actions[nactions].handler = handler;
   actions[nactions].xml = xml;
-#ifdef UPNP_DEBUGx
-  UPNP_DEBUG.printf("UPnPService::addAction[%d](%p - %s,_,%p - %s)\n", nactions, name, name, xml, xml);
-  UPNP_DEBUG.printf("UPnPService::addAction -> (%p - %s,_,%p - %s)\n", actions[0].name, actions[0].name, actions[0].xml, actions[0].xml);
-#endif
   actions[nactions].mhandler = NULL;
   actions[nactions].sensor = NULL;
   nactions++;
@@ -117,22 +120,20 @@ char *UPnPService::getServiceXML() {
 static const char *_actionListBegin = "<ActionList>\r\n";
 static const char *_actionListEnd = "</ActionList>\r\n";
 
+// Caller needs to free the result
 char *UPnPService::getActionListXML() {
   int l = strlen(_actionListBegin) + strlen(_actionListEnd) + 4;
   int i;
   for (i=0; i<nactions; i++)
     l += strlen(actions[i].xml);
-#ifdef UPNP_DEBUG
-  UPNP_DEBUG.printf("getActionListXML : alloc %d\n", l);
-#endif
+
   char *r = (char *)malloc(l);
   strcpy(r, _actionListBegin);
-  for (i=0; i<nactions; i++)
+  for (i=0; i<nactions; i++) {
     strcat(r, actions[i].xml);
+  }
   strcat(r, _actionListEnd);
-#ifdef UPNP_DEBUG
-  UPNP_DEBUG.printf("getActionListXML : len %d\n", strlen(r));
-#endif
+
   return r;
 }
 
@@ -140,12 +141,10 @@ char *UPnPService::getStateVariableListXML() {
   int l = 40;
   int i;
   for (i=0; i<nvariables; i++) {
-    l += variables[i].sendEvents ? 70 : 55;
+    l += variables[i].sendEvents ? 86 : 71;
     l += strlen(variables[i].name) + strlen(variables[i].dataType);
   }
-#ifdef UPNP_DEBUG
-  UPNP_DEBUG.printf("getStateVariableListXML : alloc %d\n", l);
-#endif
+
   char *r = new char[l];	// FIXME
   strcpy(r, "<serviceStateTable>\r\n");
   for (i=0; i<nvariables; i++) {
@@ -158,11 +157,10 @@ char *UPnPService::getStateVariableListXML() {
     strcat(r, "</name><dataType>");
     strcat(r, variables[i].dataType);
     strcat(r, "</dataType>");
+    strcat(r, "</stateVariable>");
   }
   strcat(r, "</serviceStateTable>\r\n");
-#ifdef UPNP_DEBUG
-  UPNP_DEBUG.printf("getStateVariableListXML : len %d\n", strlen(r));
-#endif
+
   return r;
 }
 
@@ -245,12 +243,8 @@ void UPnPService::EventHandler() {
 
   UPNP_DEBUG.printf("EventHandler srv(%p)\n", srv);
   UPNP_DEBUG.printf("EventHandler actions [0] (%p,%s)\n", srv->actions[0].name, srv->actions[0].name);
-
-
-  UPNP_DEBUG.print("GetChipId : "); UPNP_DEBUG.println(ESP.getChipId());
-  UPNP_DEBUG.print("GetFlashChipId : "); UPNP_DEBUG.println(ESP.getFlashChipId());
-  // UPNP_DEBUG.printf("EventHandler actions [0] (%p)\n", srv->actions[0].name);
 #endif
+
 #ifdef UPNP_DEBUGmem
   UPNP_DEBUGmem.print("GetFreeHeap : "); UPNP_DEBUG.println(ESP.getFreeHeap());
 #endif

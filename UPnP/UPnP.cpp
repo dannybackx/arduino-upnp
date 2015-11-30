@@ -1,6 +1,8 @@
 /*
  * ESP8266 Simple UPnP framework
- *   There's no separate class for multiple devices, we assume one (IoT) device is all we do.
+ *   There's no separate class for multiple devices,
+ *   also currently we allocate only one service,
+ *   because we assume one (IoT) device is all we do.
  *
  * Copyright (c) 2015 Hristo Gochkov
  * Copyright (c) 2015 Danny Backx
@@ -97,26 +99,8 @@ static const char *_upnp_scpd_template =
   "<major>1</major>"
   "<minor>0</minor>"
   "</specVersion>"
-  "<actionList>"
-  "<action>"
-  "<name>getState</name>"
-  "<argumentList>"
-  "<argument>"
-  "<retval/>"
-  "<name>State</name>"
-  "<relatedStateVariable>State</relatedStateVariable>"
-  "<direction>out</direction>"
-  "</argument>"
-  "</argumentList>"
-  "</action>"
-  "</actionList>"
-  "<serviceStateTable>"
-  "<stateVariable sendEvents=\"yes\">"
-  "<name>State</name>"
-  "<dataType>String</dataType>"
-  "<defaultValue></defaultValue>"
-  "</stateVariable>"
-  "</serviceStateTable>"
+  "%s"			// getActionListXML
+  "%s"			// getStateVariableListXML
   "</scpd>\r\n"
   "\r\n";
 
@@ -150,7 +134,17 @@ void UPnPClass::schema(WiFiClient client) {
 void UPnPClass::SCPD(WiFiClient client) {
   uint32_t ip = WiFi.localIP();
   client.print(_http_header);
-  client.print(_upnp_scpd_template);
+
+  char *al = services->getActionListXML();
+  char *svl = services->getStateVariableListXML();
+
+  int len = strlen(_upnp_scpd_template) + strlen(al) + strlen(svl);
+  char *scpd = (char *)malloc(len);
+  sprintf(scpd, _upnp_scpd_template, al, svl);
+  client.print(scpd);
+  free(scpd);
+  free(al);
+  free(svl);
 }
 
 void UPnPClass::addService(UPnPService *srv) {
