@@ -46,10 +46,13 @@ class MotionSensorService : public UPnPService {
     void begin();
     const char *GetState();
     void GetStateHandler();
+
+    void poll();            // periodically poll the sensor
     
   private:
     char state[MSS_STATE_LENGTH];
     WebServer *http;
+    int oldstate, newstate;
 };
 
 #undef MSS_GLOBAL

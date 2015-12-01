@@ -47,9 +47,16 @@ typedef struct {
   boolean sendEvents;
 } StateVariable;
 
+typedef struct {
+  const char *url;
+  int timeout;
+  StateVariable *variables;	// List of variables watched
+  char *sid;			// Subscription UUID
+} Subscriber;
+
 class UPnPService {
   public:
-    UPnPService(const char *serviceType, const char *serviceId);
+    UPnPService(const char *name, const char *serviceType, const char *serviceId);
     ~UPnPService();
 
     // Use the XML to publish a callable action
@@ -67,16 +74,19 @@ class UPnPService {
     void begin();
     Action *findAction(const char *);
     static void EventHandler();
+    static void ControlHandler();
 
     int nactions, nvariables;
     Action *actions;
     StateVariable *variables;
 
+    const char *serviceName;
     const char *serviceId;
     const char *serviceType;
 
-    // Test
-    void yeahHandler();
+    void Subscribe();
+    void Unsubscribe();
+    void SendNotify();
 
   private:
 

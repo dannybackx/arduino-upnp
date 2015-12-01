@@ -35,6 +35,8 @@ extern WebServer HTTP;
 static void GetVersion();
 
 #define DEBUG Serial
+const int sensor = 5;   // ESP8266-12E line D1 (GPIO5)
+const int led = 0;      // ESP8266-12E D3 (GPIO0)
 
 // Printf style template, parameters : serviceType, state
 static const char *gsh_template = "<u:GetStateResponse xmlns=\"%s\">\r\n<State>%s</State>\r\n</u:GetStateResponse>\r\n";
@@ -68,6 +70,7 @@ static const char *versionFileInfo = __FILE__;
 static const char *versionDateInfo = __DATE__;
 static const char *versionTimeInfo = __TIME__;
 
+static const char *myServiceName = "motionSensor";
 static const char *myServiceType = "urn:danny-backx-info:service:sensor:1";
 static const char *myServiceId = "urn:danny-backx-info:serviceId:sensor1";
 static const char *stateString = "State";
@@ -76,7 +79,7 @@ static const char *getVersionString = "getVersion";
 static const char *stringString = "string";
 
 MotionSensorService::MotionSensorService() :
-  UPnPService(myServiceType, myServiceId)
+  UPnPService(myServiceName, myServiceType, myServiceId)
 {
   addAction(getStateString, static_cast<MemberActionFunction>(&MotionSensorService::GetStateHandler), getStateXML);
   addAction(getVersionString, GetVersion, getVersionXML);
@@ -85,7 +88,7 @@ MotionSensorService::MotionSensorService() :
 }
 
 MotionSensorService::MotionSensorService(const char *deviceURN) :
-  UPnPService(myServiceType, myServiceId)
+  UPnPService(myServiceName, myServiceType, myServiceId)
 {
   addAction(getStateString, static_cast<MemberActionFunction>(&MotionSensorService::GetStateHandler), getStateXML);
   addAction(getVersionString, GetVersion, getVersionXML);
@@ -94,7 +97,7 @@ MotionSensorService::MotionSensorService(const char *deviceURN) :
 }
 
 MotionSensorService::MotionSensorService(const char *serviceType, const char *serviceId) :
-  UPnPService(serviceType, serviceId)
+  UPnPService(myServiceName, serviceType, serviceId)
 {
   addAction(getStateString, static_cast<MemberActionFunction>(&MotionSensorService::GetStateHandler), getStateXML);
   addAction(getVersionString, GetVersion, getVersionXML);
@@ -113,6 +116,27 @@ void MotionSensorService::begin() {
 #ifdef DEBUG
   DEBUG.println("MotionSensorService::begin");
 #endif
+  pinMode(sensor, INPUT);
+  oldstate = newstate = digitalRead(sensor);
+#ifdef HAVE_LED
+  pinMode(led, OUTPUT);
+#endif
+}
+
+void MotionSensorService::poll() {
+  oldstate = newstate;
+  newstate = digitalRead(sensor);
+
+  if (oldstate != newstate) {
+#ifdef HAVE_LED
+    digitalWrite(led, newstate);
+#endif
+    sprintf(state, "%d", newstate);
+    Serial.printf("State changed to %d\n", newstate);
+
+    // FIXME trigger something from here
+    SendNotify();
+  }
 }
 
 #ifdef MSS_GLOBAL

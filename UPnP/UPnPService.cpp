@@ -34,26 +34,32 @@
 #undef UPNP_DEBUGmem
 //#define UPNP_DEBUGmem Serial
 
-static const char *_scpd_xml = "/scpd.xml";
 static const char *_description_xml = "/description.xml";
-static const char *_control_xml = "/control";
-static const char *_event_xml = "/event";
+
+// Per service : no preceding "/" as this will be concatenated.
+static const char *_scpd_xml = "scpd.xml";
+static const char *_control_xml = "control";
+static const char *_event_xml = "event";
 
 static const char *_get_service_xml_template =
   "<service>"
     "<serviceType>%s</serviceType>"
     "<serviceId>%s</serviceId>"
-    "<controlURL>%s</controlURL>"
-    "<eventSubURL>%s</eventSubURL>"
-    "<SCPDURL>%s</SCPDURL>"
+    "<controlURL>/%s/%s</controlURL>"
+    "<eventSubURL>/%s/%s</eventSubURL>"
+    "<SCPDURL>/%s/%s</SCPDURL>"
   "</service>";
 
-UPnPService::UPnPService(const char *serviceType, const char *serviceId) {
+UPnPService::UPnPService(const char *name, const char *serviceType, const char *serviceId) {
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("UPnPService(%s)\n", name);
+#endif
   nactions = 0;
   nvariables = 0;
   actions = new Action [N_ACTIONS];
   variables = new StateVariable [N_VARIABLES];
 
+  this->serviceName = name;
   this->serviceType = serviceType;
   this->serviceId = serviceId;
 }
@@ -105,13 +111,17 @@ void UPnPService::addStateVariable(const char *name, const char *datatype, boole
 // Caller must free return pointer
 char *UPnPService::getServiceXML() {
   int len = strlen(_get_service_xml_template) + strlen(serviceType) + strlen(serviceId)
+	  + 3 * strlen(serviceName) + 10
           + strlen(_control_xml) + strlen(_event_xml) + strlen(_scpd_xml);
   char *r = (char *)malloc(len);
 
   sprintf(r, _get_service_xml_template,
-    serviceType, serviceId, _control_xml, _event_xml, _scpd_xml);
+    serviceType, serviceId,
+    serviceName, _control_xml,
+    serviceName, _event_xml,
+    serviceName, _scpd_xml);
 
-#ifdef UPNP_DEBUGx
+#ifdef UPNP_DEBUG
   UPNP_DEBUG.printf("getServiceXML -> %s\n", r);
 #endif
   return r;
@@ -197,6 +207,12 @@ Action * UPnPService::findAction(const char *name) {
 }
 
 void UPnPService::EventHandler() {
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.println("UPnPService::EventHandler");
+#endif
+}
+
+void UPnPService::ControlHandler() {
   // Fetch the request, this is encoded as a parameter name and its value,
   // we could reassemble that but there's no point :
   // HTTP.argName(0) --> <?xml version
@@ -268,11 +284,100 @@ void UPnPService::EventHandler() {
 }
 
 void UPnPService::begin() {
-  HTTP.on(_scpd_xml, HTTP_GET, SendSCPD);
   HTTP.on(_description_xml, HTTP_GET, SendDescription);
-  HTTP.on(_event_xml, UPnPService::EventHandler);
-  srv = this;
+
 #ifdef UPNP_DEBUG
-  UPNP_DEBUG.printf("UPnPService::begin(), this %p, srv %p\n", this, srv);
+  UPNP_DEBUG.printf("UPnPService::begin(%s,%s,%s)\n", serviceName, _scpd_xml, _event_xml);
+#endif
+ 
+  int len = strlen(_scpd_xml) + 3 + strlen(serviceName);
+  char *url = (char *)malloc(len);
+  sprintf(url, "/%s/%s", serviceName, _scpd_xml);
+  HTTP.on(url, HTTP_GET, SendSCPD);
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("UPnPService::begin(%s)\n", url); 
+#endif
+  free(url);
+
+  len = strlen(_control_xml) + 3 + strlen(serviceName);
+  url = (char *)malloc(len);
+  sprintf(url, "/%s/%s", serviceName, _control_xml);
+  HTTP.on(url, UPnPService::ControlHandler);
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("UPnPService::begin(%s)\n", url); 
+#endif
+  free(url);
+
+  len = strlen(_event_xml) + 3 + strlen(serviceName);
+  url = (char *)malloc(len);
+  sprintf(url, "/%s/%s", serviceName, _event_xml);
+  HTTP.on(url, UPnPService::EventHandler);
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("UPnPService::begin(%s)\n", url); 
+#endif
+  free(url);
+
+  srv = this;
+}
+
+/*
+ * NOTIFY delivery path HTTP/1.0
+ * HOST: delivery host:delivery port
+ * CONTENT-TYPE: text/xml; charset="utf-8"
+ * NT: upnp:event
+ * NTS: upnp:propchange
+ * SID: uuid:subscription-UUID
+ * SEQ: event key
+ * CONTENT-LENGTH: bytes in body
+ * <?xml version="1.0"?>
+ * <e:propertyset xmlns:e="urn:schemas-upnp-org:event-1-0">
+ * <e:property>
+ * <variableName>new value</variableName>
+ * </e:property>
+ * Other variable names and values (if any) go here.
+ * </e:propertyset>
+ */
+void UPnPService::SendNotify() {
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.println("SendNotify");
+#endif
+}
+
+/*
+ * A SUBSCRIBE request was received - process it.
+ *
+ * SUBSCRIBE publisher path HTTP/1.1
+ * HOST: publisher host:publisher port
+ * USER-AGENT: OS/version UPnP/2.0 product/version
+ * CALLBACK: <delivery URL>
+ * NT: upnp:event
+ * TIMEOUT: Second-requested subscription duration
+ * STATEVAR: CSV of Statevariables
+ * (No body for request with method SUBSCRIBE
+ *
+ * The reply should look like this :
+ *
+ * HTTP/1.1 200 OK
+ * DATE: when response was generated
+ * SERVER: OS/version UPnP/2.0 product/version
+ * SID: uuid:subscription-UUID
+ * CONTENT-LENGTH: 0
+ * TIMEOUT: Second-actual subscription duration
+ * ACCEPTED-STATEVAR: CSV of state variables
+ */
+void UPnPService::Subscribe() {
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.println("Subscribe");
+#endif
+}
+
+/*
+ * UNSUBSCRIBE publisher path HTTP/1.1
+ * HOST: publisher host:publisher port
+ * SID: uuid:subscription UUID
+ */
+void UPnPService::Unsubscribe() {
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.println("Unsubscribe");
 #endif
 }

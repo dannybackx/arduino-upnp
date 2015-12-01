@@ -5,4 +5,4 @@ echo "Query $IP ..."
 curl -0 -A '' -X POST -H 'Accept: ' -H 'Content-type: text/xml; charset="utf-8"' \
     -H 'SOAPACTION: "urn:danny-backx-info:serviceId:sensor1#getVersion"' \
     --data '<?xml version="1.0" encoding="utf-8"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><s:Body><u:getVersion xmlns:u = "urn:upnp-org:serviceId:ContentDirectory"></u:getVersion></s:Body></s:Envelope>' \
-    -s http://$IP:$PORT/event
+    -s http://$IP:$PORT/motionSensor/control

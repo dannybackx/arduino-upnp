@@ -78,6 +78,7 @@ void setup() {
 
     Serial.printf("Ready!\n");
     while (1) {
+      ms_srv.poll();
       HTTP.handleClient();
       delay(10);
     }
