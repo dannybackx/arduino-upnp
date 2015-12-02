@@ -121,6 +121,8 @@ void MotionSensorService::begin() {
 #ifdef HAVE_LED
   pinMode(led, OUTPUT);
 #endif
+
+  Subscribe();
 }
 
 void MotionSensorService::poll() {
@@ -132,7 +134,7 @@ void MotionSensorService::poll() {
     digitalWrite(led, newstate);
 #endif
     sprintf(state, "%d", newstate);
-    Serial.printf("State changed to %d\n", newstate);
+    //Serial.printf("State changed to %d\n", newstate);
 
     // FIXME trigger something from here
     SendNotify();

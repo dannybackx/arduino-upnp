@@ -26,6 +26,9 @@
 
 #include "debug.h"
 #include "UPnP/WebServer.h"
+#include "UPnP/WebClient.h"
+#include "UPnP/UPnPSubscriber.h"
+#include "UPnP/StateVariable.h"
 
 #define	N_ACTIONS	4
 #define	N_VARIABLES	4
@@ -41,18 +44,6 @@ typedef struct {
   MemberActionFunction mhandler;
   const char *xml;
 } Action;
-
-typedef struct {
-  const char *name, *dataType;
-  boolean sendEvents;
-} StateVariable;
-
-typedef struct {
-  const char *url;
-  int timeout;
-  StateVariable *variables;	// List of variables watched
-  char *sid;			// Subscription UUID
-} Subscriber;
 
 class UPnPService {
   public:
@@ -86,9 +77,12 @@ class UPnPService {
 
     void Subscribe();
     void Unsubscribe();
+    void SendNotify(UPnPSubscriber *s);
     void SendNotify();
 
   private:
+    UPnPSubscriber **subscriber;
+    int nsubscribers;
 
   protected:
 

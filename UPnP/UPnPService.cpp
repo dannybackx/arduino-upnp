@@ -26,6 +26,7 @@
  */
 #include "Arduino.h"
 #include "UPnP.h"
+#include "UPnP/WebClient.h"
 
 //#undef	UPNP_DEBUG
 #define	UPNP_DEBUG Serial
@@ -56,6 +57,8 @@ UPnPService::UPnPService(const char *name, const char *serviceType, const char *
 #endif
   nactions = 0;
   nvariables = 0;
+  nsubscribers = 0;
+  subscriber = NULL;
   actions = new Action [N_ACTIONS];
   variables = new StateVariable [N_VARIABLES];
 
@@ -70,6 +73,7 @@ UPnPService::~UPnPService() {
 #endif
   delete actions;
   delete variables;
+  delete subscriber;
 }
 
 // Pointer to a member function
@@ -320,27 +324,15 @@ void UPnPService::begin() {
   srv = this;
 }
 
-/*
- * NOTIFY delivery path HTTP/1.0
- * HOST: delivery host:delivery port
- * CONTENT-TYPE: text/xml; charset="utf-8"
- * NT: upnp:event
- * NTS: upnp:propchange
- * SID: uuid:subscription-UUID
- * SEQ: event key
- * CONTENT-LENGTH: bytes in body
- * <?xml version="1.0"?>
- * <e:propertyset xmlns:e="urn:schemas-upnp-org:event-1-0">
- * <e:property>
- * <variableName>new value</variableName>
- * </e:property>
- * Other variable names and values (if any) go here.
- * </e:propertyset>
- */
 void UPnPService::SendNotify() {
-#ifdef UPNP_DEBUG
-  UPNP_DEBUG.println("SendNotify");
-#endif
+  if (0 < nsubscribers) {
+    UPnPSubscriber *s = subscriber[0];
+    s->SendNotify();
+  }
+}
+
+void UPnPService::SendNotify(UPnPSubscriber *s) {
+  s->SendNotify();
 }
 
 /*
@@ -369,6 +361,10 @@ void UPnPService::Subscribe() {
 #ifdef UPNP_DEBUG
   UPNP_DEBUG.println("Subscribe");
 #endif
+  int ix = nsubscribers++;
+  subscriber = (UPnPSubscriber **)realloc(subscriber, nsubscribers * sizeof(UPnPSubscriber **));
+  UPnPSubscriber *ps = new UPnPSubscriber();
+  subscriber[ix] = ps;
 }
 
 /*
