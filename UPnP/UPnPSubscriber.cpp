@@ -70,19 +70,20 @@ static const char *_notify_body_template =
  */
 void UPnPSubscriber::SendNotify() {
 #ifdef UPNP_DEBUG
-  UPNP_DEBUG.printf("SendNotify, wc %p\n", wc);
+  UPNP_DEBUG.println("SendNotify");
 #endif
-  char *header, *body;
-  header = (char *)malloc(256);
-  body = (char *)malloc(256);
+  char *body = (char *)malloc(512);
   sprintf(body, _notify_body_template,
     "varlist");
+
+  char *header = (char *)malloc(strlen(_notify_header_template) + 128);
   sprintf(header, _notify_header_template,
     "delivery/path",		// FIXME
     "host", 45678,		// FIXME
     this,			// Use the memory address of this instance as UUID
     seq++);
-  char *msg = (char *)malloc(strlen(body) + strlen(header) + 4);
+
+  char *msg = (char *)malloc(strlen(body) + strlen(header) + 40);
   sprintf(msg, "%s\r\nContent-Length: %d\r\n%s", header, strlen(body), body);
 
   if (wc == NULL) {
@@ -98,7 +99,7 @@ void UPnPSubscriber::SendNotify() {
 
 UPnPSubscriber::UPnPSubscriber() {
 #ifdef UPNP_DEBUG
-  UPNP_DEBUG.println("UPnPSubscriber::UPnPSubscriber");
+  UPNP_DEBUG.printf("UPnPSubscriber::UPnPSubscriber(%p)\n", this);
 #endif
   wc = NULL;
   seq = 1;

@@ -57,7 +57,7 @@ UPnPService::UPnPService(const char *name, const char *serviceType, const char *
 #endif
   nactions = 0;
   nvariables = 0;
-  nsubscribers = 0;
+  maxsubscribers = nsubscribers = 0;
   subscriber = NULL;
   actions = new Action [N_ACTIONS];
   variables = new StateVariable [N_VARIABLES];
@@ -361,10 +361,25 @@ void UPnPService::Subscribe() {
 #ifdef UPNP_DEBUG
   UPNP_DEBUG.println("Subscribe");
 #endif
-  int ix = nsubscribers++;
-  subscriber = (UPnPSubscriber **)realloc(subscriber, nsubscribers * sizeof(UPnPSubscriber **));
-  UPnPSubscriber *ps = new UPnPSubscriber();
-  subscriber[ix] = ps;
+
+  // Allocate array increments per 4 entries
+  if (nsubscribers == maxsubscribers) {
+    maxsubscribers += SUBSCRIBER_ALLOC_INCREMENT;
+    subscriber = (UPnPSubscriber **)realloc(subscriber, maxsubscribers * sizeof(UPnPSubscriber **));
+
+    // NULLify new allocation
+    for (int i=nsubscribers; i<maxsubscribers; i++)
+      subscriber[i] = NULL;
+  }
+
+  // Put new class instance in the first free spot
+  nsubscribers++;
+  for (int i=0; i<maxsubscribers; i++)
+    if (subscriber[i] == NULL) {
+      UPnPSubscriber *ps = new UPnPSubscriber();
+      subscriber[i] = ps;
+      return;
+    }
 }
 
 /*
@@ -377,3 +392,29 @@ void UPnPService::Unsubscribe() {
   UPNP_DEBUG.println("Unsubscribe");
 #endif
 }
+
+void UPnPService::Unsubscribe(char *uuid) {
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("Unsubscribe(%s)\n", uuid);
+#endif
+  UPnPSubscriber *p = (UPnPSubscriber *)strtol(uuid, NULL, 16);
+  Unsubscribe(p);
+}
+
+void UPnPService::Unsubscribe(UPnPSubscriber *sp) {
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("Unsubscribe ptr %p\n", sp);
+#endif
+  int i;
+  for (int i=0; i<nsubscribers; i++)
+    if (subscriber[i] == sp) {
+      // We don't realloc here, just free up this spot. Fits with code in Subscribe().
+      // Note this strategy does not preserve order of subscribers.
+      // That can be fixed by moving the trailing subscribers down here.
+      subscriber[i] = NULL;
+      nsubscribers--;
+
+      return;
+    }
+}
+

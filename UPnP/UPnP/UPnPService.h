@@ -30,8 +30,9 @@
 #include "UPnP/UPnPSubscriber.h"
 #include "UPnP/StateVariable.h"
 
-#define	N_ACTIONS	4
-#define	N_VARIABLES	4
+#define	N_ACTIONS			4
+#define	N_VARIABLES			4
+#define	SUBSCRIBER_ALLOC_INCREMENT	4
 
 class UPnPService;
 typedef void (UPnPService::*MemberActionFunction)();
@@ -77,12 +78,15 @@ class UPnPService {
 
     void Subscribe();
     void Unsubscribe();
+    void Unsubscribe(char *uuid);
+    void Unsubscribe(UPnPSubscriber *sp);
+
     void SendNotify(UPnPSubscriber *s);
     void SendNotify();
 
   private:
     UPnPSubscriber **subscriber;
-    int nsubscribers;
+    int nsubscribers, maxsubscribers;
 
   protected:
 
