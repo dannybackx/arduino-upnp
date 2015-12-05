@@ -61,7 +61,8 @@ class UPnPClass {
 
     void addService(UPnPService *service);
 
-    static const char *mimeType;
+    static const char *mimeTypeXML;
+    static const char *mimeTypeText;
     static const char *envelopeHeader;
     static const char *envelopeTrailer;
 

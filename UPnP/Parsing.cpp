@@ -26,9 +26,19 @@
 #include "WiFiServer.h"
 #include "WiFiClient.h"
 #include "UPnP/WebServer.h"
+#include "UPnP/Headers.h"
 
-#undef DEBUG_OUTPUT
-// #define DEBUG_OUTPUT Serial
+// #undef DEBUG_OUTPUT
+#define DEBUG_OUTPUT Serial
+
+extern char *upnp_headers[];
+
+char *newstr(const char *src) {
+  int len = strlen(src);
+  char *r = (char *)malloc(len+1);
+  strcpy(r, src);
+  return r;
+}
 
 bool WebServer::_parseRequest(WiFiClient& client) {
   // Read the first line of HTTP request
@@ -58,17 +68,9 @@ bool WebServer::_parseRequest(WiFiClient& client) {
   _currentUri = url;
 
   HTTPMethod method = HTTP_GET;
-  if (methodStr == "POST") {
-    method = HTTP_POST;
-  } else if (methodStr == "DELETE") {
-    method = HTTP_DELETE;
-  } else if (methodStr == "OPTIONS") {
-    method = HTTP_OPTIONS;
-  } else if (methodStr == "PUT") {
-    method = HTTP_PUT;
-  } else if (methodStr == "PATCH") {
-    method = HTTP_PATCH;
-  }
+  for (int i=HTTP_ANY; i<HTTP_END_METHODS; i++)
+    if (methodStr == http_method_strings[i])
+      method = (HTTPMethod)i;
   _currentMethod = method;
 
 #ifdef DEBUG_OUTPUT
@@ -92,7 +94,7 @@ bool WebServer::_parseRequest(WiFiClient& client) {
     while(1){
       req = client.readStringUntil('\r');
       client.readStringUntil('\n');
-      if (req == "") break;//no moar headers
+      if (req == "") break;	// no more headers
       int headerDiv = req.indexOf(':');
       if (headerDiv == -1){
         break;
@@ -154,22 +156,60 @@ bool WebServer::_parseRequest(WiFiClient& client) {
       //   return false;
       // }
     }
+  } else if (method == HTTP_SUBSCRIBE) {
+    String headerName;
+    String headerValue;
+ 
+    while(1) {
+      req = client.readStringUntil('\r');
+      client.readStringUntil('\n');
+      if (req == "")
+        break;	// no more headers
+      int headerDiv = req.indexOf(':');
+      if (headerDiv == -1) {
+        break;
+      }
+      headerName = req.substring(0, headerDiv);
+      headerValue = req.substring(headerDiv + 2);
+
+      for (int i=UPNP_METHOD_NONE; i<UPNP_END_METHODS; i++)
+        if (headerName.equalsIgnoreCase(upnp_header_strings[i])) {
+	  int len = headerValue.length();
+	  upnp_headers[i] = (char *)malloc(len+1);
+	  strcpy(upnp_headers[i], headerValue.c_str());
+	  DEBUG_OUTPUT.printf("HEADER [%s] {%s}\n", upnp_header_strings[i], upnp_headers[i]);
+	  break;
+	}
+
+      if (headerName == "Host"){
+        _hostHeader = headerValue;
+      }
+    }
+    // Pretend these are such headers
+    upnp_headers[UPNP_HEADER_METHOD] = newstr(methodStr.c_str());
+    DEBUG_OUTPUT.printf("HEADER [%s] {%s}\n", "Method", upnp_headers[UPNP_HEADER_METHOD]);
+    upnp_headers[UPNP_HEADER_URL] = newstr(url.c_str());
+    DEBUG_OUTPUT.printf("HEADER [%s] {%s}\n", "URL", upnp_headers[UPNP_HEADER_URL]);
+    upnp_headers[UPNP_HEADER_SEARCH] = newstr(searchStr.c_str());
+    DEBUG_OUTPUT.printf("HEADER [%s] {%s}\n", "Search", upnp_headers[UPNP_HEADER_SEARCH]);
   } else {
     String headerName;
     String headerValue;
     //parse headers
-    while(1){
+    while(1) {
       req = client.readStringUntil('\r');
       client.readStringUntil('\n');
-      if (req == "") break;//no moar headers
+      if (req == "")
+        break;	// no more headers
       int headerDiv = req.indexOf(':');
-      if (headerDiv == -1){
+      if (headerDiv == -1) {
         break;
       }
       headerName = req.substring(0, headerDiv);
       headerValue = req.substring(headerDiv + 2);
 	  
 #ifdef DEBUG_OUTPUT
+      DEBUG_OUTPUT.println("==========");
       DEBUG_OUTPUT.print("headerName: ");
       DEBUG_OUTPUT.println(headerName);
       DEBUG_OUTPUT.print("headerValue: ");

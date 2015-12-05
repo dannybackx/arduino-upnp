@@ -27,6 +27,7 @@
 #include "Arduino.h"
 #include "UPnP.h"
 #include "UPnP/WebClient.h"
+#include "UPnP/Headers.h"
 
 //#undef	UPNP_DEBUG
 #define	UPNP_DEBUG Serial
@@ -125,9 +126,6 @@ char *UPnPService::getServiceXML() {
     serviceName, _event_xml,
     serviceName, _scpd_xml);
 
-#ifdef UPNP_DEBUG
-  UPNP_DEBUG.printf("getServiceXML -> %s\n", r);
-#endif
   return r;
 }
 
@@ -210,18 +208,7 @@ Action * UPnPService::findAction(const char *name) {
   return 0;
 }
 
-void UPnPService::EventHandler() {
-#ifdef UPNP_DEBUG
-  UPNP_DEBUG.println("UPnPService::EventHandler");
-#endif
-}
-
 void UPnPService::ControlHandler() {
-  // Fetch the request, this is encoded as a parameter name and its value,
-  // we could reassemble that but there's no point :
-  // HTTP.argName(0) --> <?xml version
-  // HTTP.arg(0) --> "1.0" encoding="utf-8?><s:Envelope xmlns:s="http://schemas.xmlsoap.org...
-  // so we only need HTTP.arg(0)
 #ifdef UPNP_DEBUGmem
   UPNP_DEBUGmem.print("GetFreeHeap1 : "); UPNP_DEBUG.println(ESP.getFreeHeap());
 #endif
@@ -257,13 +244,6 @@ void UPnPService::ControlHandler() {
   strncpy(action, xml+3, space-3);
   action[space-3] = '\0';
   free(xml);
-
-#ifdef UPNP_DEBUGx
-  UPNP_DEBUG.printf("EventHandler action(%s)\n", action);
-
-  UPNP_DEBUG.printf("EventHandler srv(%p)\n", srv);
-  UPNP_DEBUG.printf("EventHandler actions [0] (%p,%s)\n", srv->actions[0].name, srv->actions[0].name);
-#endif
 
 #ifdef UPNP_DEBUGmem
   UPNP_DEBUGmem.print("GetFreeHeap : "); UPNP_DEBUG.println(ESP.getFreeHeap());
@@ -335,6 +315,56 @@ void UPnPService::SendNotify(UPnPSubscriber *s) {
   s->SendNotify();
 }
 
+static char *_upnp_subscribe_reply_template =
+  "Server: Arduino/ESP8266 UPnP 0.1 © 2015 Danny Backx\r\n"
+  "SID: %s\r\n"
+  "ACCEPTED-STATEVAR: %s\r\n"
+  "\r\n";
+
+/*
+acer: {303} subscribe
+Query 192.168.1.144 ...
+* Hostname was NOT found in DNS cache
+*   Trying 192.168.1.144...
+* Connected to 192.168.1.144 (192.168.1.144) port 49157 (#0)
+> SUBSCRIBE /upnp/event/basicevent1 HTTP/1.0
+> Host: 192.168.1.144:49157
+> Content-type: text/xml; charset="utf-8"
+> CALLBACK: "<http://192.168.1.176:1234/testupnp>"
+> NT: upnp:event
+> TIMEOUT: Second-600
+> 
+* HTTP 1.0, assume close after body
+< HTTP/1.0 200 OK
+< DATE: Fri, 04 Dec 2015 22:21:05 GMT
+< SERVER: Linux/2.6.21, UPnP/1.0, Portable SDK for UPnP devices/1.6.6
+< CONTENT-LENGTH: 0
+< X-User-Agent: redsonic
+< SID: uuid:4f3e11b4-1dd2-11b2-942b-831c34640f7b
+< TIMEOUT: Second-600
+< 
+* Closing connection 0
+acer: {304} 
+ */
+/*
+ *
+ */
+void UPnPService::EventHandler() {
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.println("UPnPService::EventHandler()");
+#endif
+
+  if (strcasecmp(upnp_headers[UPNP_HEADER_METHOD], "SUBSCRIBE") == 0) {
+    // Register the new subscriber
+    UPnPSubscriber *ns = srv->Subscribe();
+  } else if (strcasecmp(upnp_headers[UPNP_HEADER_METHOD], "UNSUBSCRIBE") == 0) {
+    // FIXME
+    srv->Unsubscribe();
+  } else {
+    // silently ignore
+  }
+}
+
 /*
  * A SUBSCRIBE request was received - process it.
  *
@@ -357,11 +387,29 @@ void UPnPService::SendNotify(UPnPSubscriber *s) {
  * TIMEOUT: Second-actual subscription duration
  * ACCEPTED-STATEVAR: CSV of state variables
  */
-void UPnPService::Subscribe() {
-#ifdef UPNP_DEBUG
-  UPNP_DEBUG.println("Subscribe");
-#endif
+UPnPSubscriber *UPnPService::Subscribe() {
+  UPnPSubscriber *ns = new UPnPSubscriber();
+  Subscribe(ns);
 
+  // Setup its parameters
+  ns->setUrl(upnp_headers[UPNP_METHOD_CALLBACK]);
+  ns->setStateVar(upnp_headers[UPNP_METHOD_STATEVAR]);
+  ns->setTimeout(upnp_headers[UPNP_METHOD_TIMEOUT]);
+
+  // Provide feedback
+  char *fb = (char *)malloc(strlen(_upnp_subscribe_reply_template)
+    + strlen(ns->getSID()) + strlen(ns->getAcceptedStateVar()) + 4);
+  sprintf(fb, _upnp_subscribe_reply_template,
+    ns->getSID(), ns->getAcceptedStateVar());
+  HTTP.send(200, UPnPClass::mimeTypeText, fb);
+
+  return ns;
+}
+
+/*
+ * Add this new subscriber
+ */
+void UPnPService::Subscribe(UPnPSubscriber *ns) {
   // Allocate array increments per 4 entries
   if (nsubscribers == maxsubscribers) {
     maxsubscribers += SUBSCRIBER_ALLOC_INCREMENT;
@@ -376,10 +424,16 @@ void UPnPService::Subscribe() {
   nsubscribers++;
   for (int i=0; i<maxsubscribers; i++)
     if (subscriber[i] == NULL) {
-      UPnPSubscriber *ps = new UPnPSubscriber();
-      subscriber[i] = ps;
+      // UPnPSubscriber *ps = new UPnPSubscriber();
+      // subscriber[i] = ps;
+      subscriber[i] = ns;
+
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("Subscribe -> nsubs %d\n", nsubscribers);
+#endif
       return;
     }
+
 }
 
 /*

@@ -40,6 +40,13 @@ public:
   WebClient *wc;
   UPnPSubscriber();
   ~UPnPSubscriber();
+
+  void setUrl(char *url);
+  void setStateVar(char *stateVar);
+  void setTimeout(char *timeout);
+  char *getSID();
+  char *getAcceptedStateVar();
+
 };
 
 #endif

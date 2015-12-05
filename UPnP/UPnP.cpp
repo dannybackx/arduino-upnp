@@ -151,7 +151,8 @@ void UPnPClass::addService(UPnPService *srv) {
   this->services = srv;
 }
 
-const char *UPnPClass::mimeType = "text/xml; charset=\"utf-8\"";
+const char *UPnPClass::mimeTypeXML = "text/xml; charset=\"utf-8\"";
+const char *UPnPClass::mimeTypeText = "text/plain; charset=\"utf-8\"";
 const char *UPnPClass::envelopeHeader = 
     "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n"
     "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">\r\n"

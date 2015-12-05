@@ -153,7 +153,7 @@ const char *MotionSensorService::GetState() {
 static void GetVersion() {
   char msg[128];
   sprintf(msg, versionTemplate, versionFileInfo, versionDateInfo, versionTimeInfo);
-  HTTP.send(200, UPnPClass::mimeType, msg);
+  HTTP.send(200, UPnPClass::mimeTypeXML, msg);
 }
 
 // Example of a member function to handle UPnP requests : this can access stuff in the class
@@ -170,6 +170,6 @@ void MotionSensorService::GetStateHandler() {
   strcat(tmp1, tmp2);
   free(tmp2);
   strcat(tmp1, UPnPClass::envelopeTrailer);
-  HTTP.send(200, UPnPClass::mimeType, tmp1);
+  HTTP.send(200, UPnPClass::mimeTypeXML, tmp1);
   free(tmp1);
 }

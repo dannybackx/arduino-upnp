@@ -65,6 +65,7 @@ class UPnPService {
     char *getServiceXML();
     void begin();
     Action *findAction(const char *);
+
     static void EventHandler();
     static void ControlHandler();
 
@@ -76,7 +77,8 @@ class UPnPService {
     const char *serviceId;
     const char *serviceType;
 
-    void Subscribe();
+    UPnPSubscriber *Subscribe();
+    void Subscribe(UPnPSubscriber *ns);
     void Unsubscribe();
     void Unsubscribe(char *uuid);
     void Unsubscribe(UPnPSubscriber *sp);

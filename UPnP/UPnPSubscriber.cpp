@@ -28,6 +28,7 @@
 #include "Arduino.h"
 #include "UPnP.h"
 #include "UPnP/WebClient.h"
+#include "UPnP/Headers.h"
 
 //#undef	UPNP_DEBUG
 #define	UPNP_DEBUG Serial
@@ -38,7 +39,7 @@ static const char *_notify_header_template =
   "CONTENT-TYPE: text/xml; charset=\"utf-8\"\r\n"
   "NT: upnp:event\r\n"
   "NTS: upnp:propchange\r\n"
-  "SID: uuid:%08x\r\n"
+  "SID: %s\r\n"
   "SEQ: %d\r\n"
   "\r\n"
   ;
@@ -51,6 +52,9 @@ static const char *_notify_body_template =
   "</e:propertyset>\r\n"
   "\r\n"
   ;
+
+char *upnp_headers[UPNP_END_METHODS];
+
 /*
  * NOTIFY delivery path HTTP/1.0
  * HOST: delivery host:delivery port
@@ -80,7 +84,7 @@ void UPnPSubscriber::SendNotify() {
   sprintf(header, _notify_header_template,
     "delivery/path",		// FIXME
     "host", 45678,		// FIXME
-    this,			// Use the memory address of this instance as UUID
+    sid,			// Use the memory address of this instance as UUID, see ctor
     seq++);
 
   char *msg = (char *)malloc(strlen(body) + strlen(header) + 40);
@@ -91,7 +95,7 @@ void UPnPSubscriber::SendNotify() {
     wc->connect(url);
   }
   if (wc)
-    wc->send(UPnPClass::mimeType, msg);
+    wc->send(UPnPClass::mimeTypeXML, msg);
   free(msg);
   free(body);
   free(header);
@@ -103,6 +107,8 @@ UPnPSubscriber::UPnPSubscriber() {
 #endif
   wc = NULL;
   seq = 1;
+  sid = (char *)malloc(16);
+  sprintf(sid, "uuid:%08x", this);
 }
 
 UPnPSubscriber::~UPnPSubscriber() {
@@ -111,4 +117,23 @@ UPnPSubscriber::~UPnPSubscriber() {
 #endif
   if (wc)
     delete wc;
+  free(sid);
+}
+
+void UPnPSubscriber::setUrl(char *url) {
+  this->url = url;	// FIXME make a copy ?
+}
+
+void UPnPSubscriber::setStateVar(char *stateVar) {
+}
+
+void UPnPSubscriber::setTimeout(char *timeout) {
+}
+
+char *UPnPSubscriber::getSID() {
+  return sid;
+}
+
+char *UPnPSubscriber::getAcceptedStateVar() {
+  return "yow";
 }

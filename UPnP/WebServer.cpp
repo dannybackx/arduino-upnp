@@ -112,7 +112,6 @@ void WebServer::handleClient() {
   if (!_parseRequest(client)) {
     return;
   }
-  /* */
 
   _currentClient = client;
   _contentLength = CONTENT_LENGTH_NOT_SET;
