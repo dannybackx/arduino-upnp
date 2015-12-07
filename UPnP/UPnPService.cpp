@@ -61,14 +61,9 @@ UPnPService::UPnPService(const char *name, const char *serviceType, const char *
   subscriber = NULL;
   actions = new Action [N_ACTIONS];
 
-#ifdef VARIABLES_DYNAMIC
   // Initial allocation
   maxvariables = nvariables = 0;
   variables = NULL;
-#else
-  nvariables = 0;
-  variables = new StateVariable[N_VARIABLES];
-#endif
 
   this->serviceName = name;
   this->serviceType = serviceType;
@@ -81,14 +76,11 @@ UPnPService::~UPnPService() {
 #endif
   delete actions;
 
-#ifdef VARIABLES_DYNAMIC
   for (int i=0; i<maxvariables; i++)
     if (variables[i])
       free(variables[i]);
   free(variables);
-#else
-  delete variables;
-#endif
+
   delete subscriber;
 }
 
@@ -122,10 +114,10 @@ void UPnPService::addAction(const char *name, ActionFunction handler, const char
 }
 
 void UPnPService::addStateVariable(const char *name, const char *datatype, boolean sendEvents) {
+#ifdef UPNP_DEBUGx
   UPNP_DEBUG.printf("UPnPService UPnPService::addStateVariable %s\n", name);
   delay(1000);
-  
-#ifdef VARIABLES_DYNAMIC
+#endif
   if (nvariables == maxvariables) {
     maxvariables += N_VARIABLES;
     variables = (StateVariable **)realloc(variables, maxvariables * sizeof(StateVariable *));;
@@ -138,15 +130,6 @@ void UPnPService::addStateVariable(const char *name, const char *datatype, boole
   sv->name = name;
   sv->dataType = datatype;
   sv->sendEvents = sendEvents;
-#else
-  if (nvariables == N_VARIABLES)
-    return;
-
-  variables[nvariables].name = name;
-  variables[nvariables].dataType = datatype;
-  variables[nvariables].sendEvents = sendEvents;
-  nvariables++;
-#endif
 }
 
 // Caller must free return pointer
@@ -188,23 +171,17 @@ char *UPnPService::getActionListXML() {
 char *UPnPService::getStateVariableListXML() {
   int l = 40;
   int i;
-#ifdef VARIABLES_DYNAMIC
+
   for (i=0; i<nvariables; i++)
     if (variables[i]) {
       l += variables[i]->sendEvents ? 86 : 71;
       l += strlen(variables[i]->name) + strlen(variables[i]->dataType);
     }
-#else
-  for (i=0; i<nvariables; i++) {
-    l += variables[i].sendEvents ? 86 : 71;
-    l += strlen(variables[i].name) + strlen(variables[i].dataType);
-  }
-#endif
 
   char *r = new char[l];	// FIXME
   strcpy(r, "<serviceStateTable>\r\n");
   for (i=0; i<nvariables; i++) {
-#ifdef VARIABLES_DYNAMIC
+
     if (variables[i]) {
       if (variables[i]->sendEvents)
         strcat(r, "<stateVariable sendEvents=\"yes\">");
@@ -217,18 +194,6 @@ char *UPnPService::getStateVariableListXML() {
       strcat(r, "</dataType>");
       strcat(r, "</stateVariable>");
     }
-#else
-    if (variables[i].sendEvents)
-      strcat(r, "<stateVariable sendEvents=\"yes\">");
-    else
-      strcat(r, "<stateVariable>");
-    strcat(r, "<name>");
-    strcat(r, variables[i].name);
-    strcat(r, "</name><dataType>");
-    strcat(r, variables[i].dataType);
-    strcat(r, "</dataType>");
-    strcat(r, "</stateVariable>");
-#endif
   }
   strcat(r, "</serviceStateTable>\r\n");
 
@@ -536,26 +501,13 @@ void UPnPService::Unsubscribe(UPnPSubscriber *sp) {
 }
 
 StateVariable *UPnPService::lookupVariable(char *name) {
-#ifdef VARIABLES_DYNAMIC
 #ifdef UPNP_DEBUG
   UPNP_DEBUG.printf("lookupVariable(%s)\n", name);
 #endif
+
   for (int i=0; i<nvariables; i++)
     if (variables[i])
       if (strcasecmp(name, variables[i]->name) == 0)
         return variables[i];
-#else
-#ifdef UPNP_DEBUG
-  UPNP_DEBUG.printf("lookupVariable(%s)\n", name);
-  UPNP_DEBUG.printf("lookupVariable variables %p nvars %d\n",
-    variables, nvariables);
-  delay(1000);
-#endif
-  if (name == NULL)
-    return NULL;
-  for (int i=0; i<nvariables; i++)
-    if (strcasecmp(name, variables[i].name) == 0)
-      return &variables[i];
-#endif
   return NULL;
 }

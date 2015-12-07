@@ -30,8 +30,6 @@
 #include "UPnP/UPnPSubscriber.h"
 #include "UPnP/StateVariable.h"
 
-#define	VARIABLES_DYNAMIC
-
 #define	N_ACTIONS			4
 #define	N_VARIABLES			4
 #define	SUBSCRIBER_ALLOC_INCREMENT	4
@@ -72,13 +70,9 @@ class UPnPService {
     static void EventHandler();
     static void ControlHandler();
 
-#ifdef VARIABLES_DYNAMIC
     int nvariables, maxvariables;
     StateVariable **variables;
-#else
-    int nvariables;
-    StateVariable *variables;
-#endif
+
     int nactions;
     Action *actions;
 
