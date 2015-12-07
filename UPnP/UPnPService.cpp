@@ -57,11 +57,18 @@ UPnPService::UPnPService(const char *name, const char *serviceType, const char *
   UPNP_DEBUG.printf("UPnPService(%s)\n", name);
 #endif
   nactions = 0;
-  nvariables = 0;
   maxsubscribers = nsubscribers = 0;
   subscriber = NULL;
   actions = new Action [N_ACTIONS];
-  variables = new StateVariable [N_VARIABLES];
+
+#ifdef VARIABLES_DYNAMIC
+  // Initial allocation
+  maxvariables = nvariables = 0;
+  variables = NULL;
+#else
+  nvariables = 0;
+  variables = new StateVariable[N_VARIABLES];
+#endif
 
   this->serviceName = name;
   this->serviceType = serviceType;
@@ -73,7 +80,15 @@ UPnPService::~UPnPService() {
   UPNP_DEBUG.printf("UPnPService DTOR\n");
 #endif
   delete actions;
+
+#ifdef VARIABLES_DYNAMIC
+  for (int i=0; i<maxvariables; i++)
+    if (variables[i])
+      free(variables[i]);
+  free(variables);
+#else
   delete variables;
+#endif
   delete subscriber;
 }
 
@@ -107,10 +122,31 @@ void UPnPService::addAction(const char *name, ActionFunction handler, const char
 }
 
 void UPnPService::addStateVariable(const char *name, const char *datatype, boolean sendEvents) {
+  UPNP_DEBUG.printf("UPnPService UPnPService::addStateVariable %s\n", name);
+  delay(1000);
+  
+#ifdef VARIABLES_DYNAMIC
+  if (nvariables == maxvariables) {
+    maxvariables += N_VARIABLES;
+    variables = (StateVariable **)realloc(variables, maxvariables * sizeof(StateVariable *));;
+    for (int i=nvariables; i<maxvariables; i++)
+      variables[i] = NULL;
+  }
+  StateVariable *sv = (StateVariable *)malloc(sizeof(StateVariable));
+  variables[nvariables++] = sv;
+
+  sv->name = name;
+  sv->dataType = datatype;
+  sv->sendEvents = sendEvents;
+#else
+  if (nvariables == N_VARIABLES)
+    return;
+
   variables[nvariables].name = name;
   variables[nvariables].dataType = datatype;
   variables[nvariables].sendEvents = sendEvents;
   nvariables++;
+#endif
 }
 
 // Caller must free return pointer
@@ -152,14 +188,36 @@ char *UPnPService::getActionListXML() {
 char *UPnPService::getStateVariableListXML() {
   int l = 40;
   int i;
+#ifdef VARIABLES_DYNAMIC
+  for (i=0; i<nvariables; i++)
+    if (variables[i]) {
+      l += variables[i]->sendEvents ? 86 : 71;
+      l += strlen(variables[i]->name) + strlen(variables[i]->dataType);
+    }
+#else
   for (i=0; i<nvariables; i++) {
     l += variables[i].sendEvents ? 86 : 71;
     l += strlen(variables[i].name) + strlen(variables[i].dataType);
   }
+#endif
 
   char *r = new char[l];	// FIXME
   strcpy(r, "<serviceStateTable>\r\n");
   for (i=0; i<nvariables; i++) {
+#ifdef VARIABLES_DYNAMIC
+    if (variables[i]) {
+      if (variables[i]->sendEvents)
+        strcat(r, "<stateVariable sendEvents=\"yes\">");
+      else
+        strcat(r, "<stateVariable>");
+      strcat(r, "<name>");
+      strcat(r, variables[i]->name);
+      strcat(r, "</name><dataType>");
+      strcat(r, variables[i]->dataType);
+      strcat(r, "</dataType>");
+      strcat(r, "</stateVariable>");
+    }
+#else
     if (variables[i].sendEvents)
       strcat(r, "<stateVariable sendEvents=\"yes\">");
     else
@@ -170,6 +228,7 @@ char *UPnPService::getStateVariableListXML() {
     strcat(r, variables[i].dataType);
     strcat(r, "</dataType>");
     strcat(r, "</stateVariable>");
+#endif
   }
   strcat(r, "</serviceStateTable>\r\n");
 
@@ -304,15 +363,15 @@ void UPnPService::begin() {
   srv = this;
 }
 
-void UPnPService::SendNotify() {
+void UPnPService::SendNotify(const char *varName) {
   if (0 < nsubscribers) {
     UPnPSubscriber *s = subscriber[0];
-    s->SendNotify();
+    s->SendNotify(varName);
   }
 }
 
-void UPnPService::SendNotify(UPnPSubscriber *s) {
-  s->SendNotify();
+void UPnPService::SendNotify(UPnPSubscriber *s, const char *varName) {
+  s->SendNotify(varName);
 }
 
 static char *_upnp_subscribe_reply_template =
@@ -389,18 +448,22 @@ void UPnPService::EventHandler() {
  */
 UPnPSubscriber *UPnPService::Subscribe() {
   UPnPSubscriber *ns = new UPnPSubscriber();
+  ns->setService(srv);
   Subscribe(ns);
 
   // Setup its parameters
   ns->setUrl(upnp_headers[UPNP_METHOD_CALLBACK]);
-  ns->setStateVar(upnp_headers[UPNP_METHOD_STATEVAR]);
+  ns->setStateVarList(upnp_headers[UPNP_METHOD_STATEVAR]);
   ns->setTimeout(upnp_headers[UPNP_METHOD_TIMEOUT]);
 
   // Provide feedback
+  char *asv = ns->getAcceptedStateVar();
+  char *sid = ns->getSID();
   char *fb = (char *)malloc(strlen(_upnp_subscribe_reply_template)
-    + strlen(ns->getSID()) + strlen(ns->getAcceptedStateVar()) + 4);
-  sprintf(fb, _upnp_subscribe_reply_template,
-    ns->getSID(), ns->getAcceptedStateVar());
+    + strlen(sid) + (asv ? strlen(asv) : 0) + 4);
+  sprintf(fb, _upnp_subscribe_reply_template, sid, asv ? asv : "");
+  // free(sid);	// Don't free SID. FIXME this is confusing.
+  if (asv) free(asv);
   HTTP.send(200, UPnPClass::mimeTypeText, fb);
 
   return ns;
@@ -413,7 +476,7 @@ void UPnPService::Subscribe(UPnPSubscriber *ns) {
   // Allocate array increments per 4 entries
   if (nsubscribers == maxsubscribers) {
     maxsubscribers += SUBSCRIBER_ALLOC_INCREMENT;
-    subscriber = (UPnPSubscriber **)realloc(subscriber, maxsubscribers * sizeof(UPnPSubscriber **));
+    subscriber = (UPnPSubscriber **)realloc(subscriber, maxsubscribers * sizeof(UPnPSubscriber *));
 
     // NULLify new allocation
     for (int i=nsubscribers; i<maxsubscribers; i++)
@@ -472,3 +535,27 @@ void UPnPService::Unsubscribe(UPnPSubscriber *sp) {
     }
 }
 
+StateVariable *UPnPService::lookupVariable(char *name) {
+#ifdef VARIABLES_DYNAMIC
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("lookupVariable(%s)\n", name);
+#endif
+  for (int i=0; i<nvariables; i++)
+    if (variables[i])
+      if (strcasecmp(name, variables[i]->name) == 0)
+        return variables[i];
+#else
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("lookupVariable(%s)\n", name);
+  UPNP_DEBUG.printf("lookupVariable variables %p nvars %d\n",
+    variables, nvariables);
+  delay(1000);
+#endif
+  if (name == NULL)
+    return NULL;
+  for (int i=0; i<nvariables; i++)
+    if (strcasecmp(name, variables[i].name) == 0)
+      return &variables[i];
+#endif
+  return NULL;
+}

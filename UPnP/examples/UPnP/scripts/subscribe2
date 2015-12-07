@@ -7,5 +7,5 @@ curl -v -0 -A '' -X SUBSCRIBE -H 'Accept: ' -H 'Content-type: text/xml; charset=
     -H 'CALLBACK: "<http://192.168.1.176:1234/testupnp>"' \
     -H 'NT: upnp:event' \
     -H 'TIMEOUT: Second-600' \
-    -H 'STATEVAR: abc, def' \
+    -H 'STATEVAR: State, NoVariable' \
     -s http://$IP:$PORT/$DIR

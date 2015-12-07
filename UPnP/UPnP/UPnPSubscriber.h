@@ -27,25 +27,33 @@
 #include "UPnP/UPnPService.h"
 #include "UPnP/StateVariable.h"
 
+class UPnPService;
 class UPnPSubscriber {
 public:
   const char *url;
   int timeout;
-  StateVariable *variables;	// List of variables watched
+  StateVariable **variables;	// List of variables watched
+  int nvariables;
   char *sid;			// Subscription UUID
   int seq;			// Sequence number
 
-  void SendNotify();
+  void SendNotify(StateVariable &sv);
+  void SendNotify(const char *varName);
 
   WebClient *wc;
   UPnPSubscriber();
+  void setService(UPnPService *s);
   ~UPnPSubscriber();
 
   void setUrl(char *url);
-  void setStateVar(char *stateVar);
+  void setStateVarList(char *stateVarList);
+  void setStateVar(char *name);
   void setTimeout(char *timeout);
   char *getSID();
   char *getAcceptedStateVar();
+
+protected:
+  UPnPService *service;
 
 };
 

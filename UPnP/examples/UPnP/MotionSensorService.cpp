@@ -122,7 +122,7 @@ void MotionSensorService::begin() {
   pinMode(led, OUTPUT);
 #endif
 
-  Subscribe();
+  // Subscribe();
 }
 
 void MotionSensorService::poll() {
@@ -137,7 +137,7 @@ void MotionSensorService::poll() {
     //Serial.printf("State changed to %d\n", newstate);
 
     // FIXME trigger something from here
-    SendNotify();
+    SendNotify("State");
   }
 }
 

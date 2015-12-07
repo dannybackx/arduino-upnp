@@ -30,6 +30,8 @@
 #include "UPnP/UPnPSubscriber.h"
 #include "UPnP/StateVariable.h"
 
+#define	VARIABLES_DYNAMIC
+
 #define	N_ACTIONS			4
 #define	N_VARIABLES			4
 #define	SUBSCRIBER_ALLOC_INCREMENT	4
@@ -65,13 +67,20 @@ class UPnPService {
     char *getServiceXML();
     void begin();
     Action *findAction(const char *);
+    StateVariable *lookupVariable(char *name);
 
     static void EventHandler();
     static void ControlHandler();
 
-    int nactions, nvariables;
-    Action *actions;
+#ifdef VARIABLES_DYNAMIC
+    int nvariables, maxvariables;
+    StateVariable **variables;
+#else
+    int nvariables;
     StateVariable *variables;
+#endif
+    int nactions;
+    Action *actions;
 
     const char *serviceName;
     const char *serviceId;
@@ -83,8 +92,10 @@ class UPnPService {
     void Unsubscribe(char *uuid);
     void Unsubscribe(UPnPSubscriber *sp);
 
-    void SendNotify(UPnPSubscriber *s);
+    void SendNotify(UPnPSubscriber *s, const char *varName);
     void SendNotify();
+    // void SendNotify(StateVariable &sv);
+    void SendNotify(const char *varName);
 
   private:
     UPnPSubscriber **subscriber;
