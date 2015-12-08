@@ -412,8 +412,7 @@ void UPnPService::EventHandler() {
  * ACCEPTED-STATEVAR: CSV of state variables
  */
 UPnPSubscriber *UPnPService::Subscribe() {
-  UPnPSubscriber *ns = new UPnPSubscriber();
-  ns->setService(srv);
+  UPnPSubscriber *ns = new UPnPSubscriber(srv);
   Subscribe(ns);
 
   // Setup its parameters

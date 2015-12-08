@@ -106,14 +106,11 @@ void UPnPSubscriber::SendNotify(const char *varName) {
   free(header);
 }
 
-void UPnPSubscriber::setService(UPnPService *s) {
-  service = s;
-}
-
-UPnPSubscriber::UPnPSubscriber() {
+UPnPSubscriber::UPnPSubscriber(UPnPService *s) {
 #ifdef UPNP_DEBUG
   UPNP_DEBUG.printf("UPnPSubscriber::UPnPSubscriber(%p)\n", this);
 #endif
+  service = s;
 
   wc = NULL;
   seq = 1;

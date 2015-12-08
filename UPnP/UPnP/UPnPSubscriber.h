@@ -41,8 +41,7 @@ public:
   void SendNotify(const char *varName);
 
   WebClient *wc;
-  UPnPSubscriber();
-  void setService(UPnPService *s);
+  UPnPSubscriber(UPnPService *s);
   ~UPnPSubscriber();
 
   void setUrl(char *url);
