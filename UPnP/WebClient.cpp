@@ -30,8 +30,8 @@
 /*
  * Select only one of these lines :
  */
-// #undef DEBUG_OUTPUT
-#define DEBUG_OUTPUT Serial
+#undef DEBUG_OUTPUT
+// #define DEBUG_OUTPUT Serial
 
 WebClient::WebClient() {
   wc = NULL;
@@ -63,11 +63,12 @@ bool WebClient::connect(IPAddress ip, uint16_t port, char *path) {
   if (wc == NULL)
     wc = new WiFiClient();
 
-#if 1
   success = wc->connect(ip, port);
-  Serial.printf("wc->connect => %d, wc %p\n", success, wc);
+#ifdef DEBUG_OUTPUT
+  DEBUG_OUTPUT.printf("wc->connect => %d, wc %p\n", success, wc);
   delay(2000);
 #endif
+
   this->path = path;
   return success;
 }
@@ -83,7 +84,9 @@ char *WebClient::send(const char *mime, const char *msg) {
   if (wc->status() == WL_CONNECTED)
     wc->write(msg, strlen(msg));
   else {
-    Serial.printf("wc::send : not connected %d\n", wc->status());
+#ifdef DEBUG_OUTPUTx
+    DEBUG_OUTPUT.printf("wc::send : not connected %d\n", wc->status());
+#endif
   }
 #else
     wc->write(msg, strlen(msg));

@@ -39,7 +39,7 @@ extern "C" {
   #include "user_interface.h"
 }
 
-#define	DEBUG_UPNP	Serial
+// #define	DEBUG_UPNP	Serial
 
 UPnPClass UPnP;	// FIXME
 

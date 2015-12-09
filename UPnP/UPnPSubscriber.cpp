@@ -30,8 +30,8 @@
 #include "UPnP/WebClient.h"
 #include "UPnP/Headers.h"
 
-//#undef	UPNP_DEBUG
-#define	UPNP_DEBUG Serial
+#undef	UPNP_DEBUG
+// #define	UPNP_DEBUG Serial
 
 static const char *_notify_header_template =
   "NOTIFY %s HTTP/1.0\r\n"

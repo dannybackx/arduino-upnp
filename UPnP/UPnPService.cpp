@@ -29,8 +29,8 @@
 #include "UPnP/WebClient.h"
 #include "UPnP/Headers.h"
 
-//#undef	UPNP_DEBUG
-#define	UPNP_DEBUG Serial
+#undef	UPNP_DEBUG
+//#define	UPNP_DEBUG Serial
 #undef	UPNP_DEBUGx
 //#define	UPNP_DEBUGx Serial
 #undef UPNP_DEBUGmem
