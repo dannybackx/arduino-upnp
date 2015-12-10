@@ -396,10 +396,10 @@ void UPnPService::EventHandler() {
   UPNP_DEBUG.println("UPnPService::EventHandler()");
 #endif
 
-  if (strcasecmp(upnp_headers[UPNP_HEADER_METHOD], "SUBSCRIBE") == 0) {
+  if (strcasecmp(HTTP.httpMethod(), "SUBSCRIBE") == 0) {
     // Register the new subscriber
     UPnPSubscriber *ns = srv->Subscribe();
-  } else if (strcasecmp(upnp_headers[UPNP_HEADER_METHOD], "UNSUBSCRIBE") == 0) {
+  } else if (strcasecmp(HTTP.httpMethod(), "UNSUBSCRIBE") == 0) {
     // FIXME
     srv->Unsubscribe();
   } else {

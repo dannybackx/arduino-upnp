@@ -39,11 +39,11 @@
 // #define DEBUG_OUTPUT Serial
 
 WebServer::WebServer(int port)
-: _server(port)
-, _firstHandler(0)
-, _lastHandler(0)
-, _currentArgCount(0)
-, _currentArgs(0)
+	: _server(port)
+	, _firstHandler(0)
+	, _lastHandler(0)
+	, _currentArgCount(0)
+	, _currentArgs(0)
 {
   plainBuf = (char *)0;
   plainLen = 0;
@@ -90,10 +90,6 @@ void WebServer::_addRequestHandler(WebRequestHandler* handler) {
       _lastHandler->next = handler;
       _lastHandler = handler;
     }
-}
-
-void WebServer::serveStatic(const char* uri, FS& fs, const char* path) {
-    _addRequestHandler(new StaticRequestHandler(fs, path, uri));
 }
 
 void WebServer::handleClient() {

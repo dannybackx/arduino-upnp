@@ -58,6 +58,7 @@ bool WebServer::_parseRequest(WiFiClient& client) {
   }
 
   String methodStr = req.substring(0, addr_start);
+  _method = methodStr.c_str();
   String url = req.substring(addr_start + 1, addr_end);
   String searchStr = "";
   int hasSearch = url.indexOf('?');
@@ -82,13 +83,11 @@ bool WebServer::_parseRequest(WiFiClient& client) {
   DEBUG_OUTPUT.println(searchStr);
 #endif
 
-  String formData;
   // below is needed only when POST type request
   if (method == HTTP_POST || method == HTTP_PUT || method == HTTP_PATCH || method == HTTP_DELETE) {
     String boundaryStr;
     String headerName;
     String headerValue;
-    bool isForm = false;
     uint32_t contentLength = 0;
 
     // parse headers
@@ -111,21 +110,13 @@ bool WebServer::_parseRequest(WiFiClient& client) {
       DEBUG_OUTPUT.println(headerValue);
 #endif
 	  
-      if (headerName == "Content-Type"){
-        if (headerValue.startsWith("text/plain")){
-          isForm = false;
-        } else if (headerValue.startsWith("multipart/form-data")){
-          boundaryStr = headerValue.substring(headerValue.indexOf('=')+1);
-          isForm = true;
-        }
-      } else if (headerName == "Content-Length"){
+      if (headerName == "Content-Length"){
         contentLength = headerValue.toInt();
       } else if (headerName == "Host"){
         _hostHeader = headerValue;
       }
     }
 
-    if (!isForm) {
       if (searchStr != "")
         searchStr += '&';
 
@@ -144,20 +135,14 @@ bool WebServer::_parseRequest(WiFiClient& client) {
       DEBUG_OUTPUT.print("Plain: ");
       DEBUG_OUTPUT.println(plainBuf);
 #endif
-      if(plainBuf[0] == '{' || plainBuf[0] == '[' || strstr(plainBuf, "=") == NULL){
+      if (plainBuf[0] == '{' || plainBuf[0] == '[' || strstr(plainBuf, "=") == NULL) {
         //plain post json or other data
         searchStr += "plain=";
         searchStr += plainBuf;
       } else {
         searchStr += plainBuf;
       }
-    }
 
-    if (isForm){
-      // if (!_parseForm(client, boundaryStr, contentLength)) {
-      //   return false;
-      // }
-    }
     /* End HTTP_POST, HTTP_PUT, HTTP_PATCH, HTTP_DELETE */
   } else if (method == HTTP_SUBSCRIBE) {
     String headerName;
@@ -191,13 +176,13 @@ bool WebServer::_parseRequest(WiFiClient& client) {
       }
     }
     // Pretend these are such headers
-    upnp_headers[UPNP_HEADER_METHOD] = newstr(methodStr.c_str());
-    upnp_headers[UPNP_HEADER_URL] = newstr(url.c_str());
-    upnp_headers[UPNP_HEADER_SEARCH] = newstr(searchStr.c_str());
+    // upnp_headers[UPNP_HEADER_METHOD] = newstr(methodStr.c_str());
+    // upnp_headers[UPNP_HEADER_URL] = newstr(url.c_str());
+    // upnp_headers[UPNP_HEADER_SEARCH] = newstr(searchStr.c_str());
 #ifdef DEBUG_OUTPUT
-    DEBUG_OUTPUT.printf("HEADER [%s] {%s}\n", "Method", upnp_headers[UPNP_HEADER_METHOD]);
-    DEBUG_OUTPUT.printf("HEADER [%s] {%s}\n", "URL", upnp_headers[UPNP_HEADER_URL]);
-    DEBUG_OUTPUT.printf("HEADER [%s] {%s}\n", "Search", upnp_headers[UPNP_HEADER_SEARCH]);
+    // DEBUG_OUTPUT.printf("HEADER [%s] {%s}\n", "Method", upnp_headers[UPNP_HEADER_METHOD]);
+    // DEBUG_OUTPUT.printf("HEADER [%s] {%s}\n", "URL", upnp_headers[UPNP_HEADER_URL]);
+    // DEBUG_OUTPUT.printf("HEADER [%s] {%s}\n", "Search", upnp_headers[UPNP_HEADER_SEARCH]);
 #endif
   } else {
     /* HTTP_GET, HTTP_OPTIONS */
@@ -205,9 +190,9 @@ bool WebServer::_parseRequest(WiFiClient& client) {
     String headerValue;
 
     // Pretend these are such headers
-    upnp_headers[UPNP_HEADER_METHOD] = newstr(methodStr.c_str());
-    upnp_headers[UPNP_HEADER_URL] = newstr(url.c_str());
-    upnp_headers[UPNP_HEADER_SEARCH] = newstr(searchStr.c_str());
+    // upnp_headers[UPNP_HEADER_METHOD] = newstr(methodStr.c_str());
+    // upnp_headers[UPNP_HEADER_URL] = newstr(url.c_str());
+    // upnp_headers[UPNP_HEADER_SEARCH] = newstr(searchStr.c_str());
 
     // Parse headers
     while(1) {
