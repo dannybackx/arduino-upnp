@@ -34,6 +34,9 @@
 #include "UPnP.h"
 #include "debug.h"
 #include "UPnP/WebServer.h"
+#include "UPnP/Headers.h"
+
+extern WebServer HTTP;
 
 extern "C" {
   #include "user_interface.h"
@@ -58,7 +61,7 @@ void UPnPClass::begin(WebServer *http, UPnPDevice *device) {
   this->http = http;
 }
 
-static const char *_http_header =
+/* static */ const char *_http_header =
   "HTTP/1.1 200 OK\r\n"
   "Content-Type: text/xml\r\n"
   "Connection: close\r\n"
@@ -92,17 +95,15 @@ static const char *_upnp_device_template_2 =
   "</root>\r\n"
   "\r\n";
 
-static const char *_upnp_scpd_template =
-  "<?xml version=\"1.0\"?>"
-  "<scpd xmlns=\"urn:danny-backx-info:service-1-0\">"
-  "<specVersion>"
-  "<major>1</major>"
-  "<minor>0</minor>"
-  "</specVersion>"
-  "%s"			// getActionListXML
-  "%s"			// getStateVariableListXML
-  "</scpd>\r\n"
-  "\r\n";
+const char *UPnPClass::mimeTypeXML = "text/xml; charset=\"utf-8\"";
+const char *UPnPClass::mimeTypeText = "text/plain; charset=\"utf-8\"";
+const char *UPnPClass::envelopeHeader = 
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n"
+    "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">\r\n"
+    "<s:body>\r\n";
+const char *UPnPClass::envelopeTrailer = 
+    "</s:body>\r\n"    
+    "</s:Envelope>\r\n";
 
 // Called by HTTP server when our description XML is queried
 void UPnPClass::schema(WiFiClient client) {
@@ -123,40 +124,59 @@ void UPnPClass::schema(WiFiClient client) {
     device->getUuid()
   );
   if (services) {
-    // Need to free
-    char *tmp = services->getServiceXML();
-    client.print(tmp);
-    free(tmp);
+    for (int i=0; i<nservices; i++) {
+      // Need to free
+      char *tmp = services[i]->getServiceXML();
+      client.print(tmp);
+      free(tmp);
+    }
   }
   client.print(_upnp_device_template_2);
 }
 
-void UPnPClass::SCPD(WiFiClient client) {
-  uint32_t ip = WiFi.localIP();
-  client.print(_http_header);
-
-  char *al = services->getActionListXML();
-  char *svl = services->getStateVariableListXML();
-
-  int len = strlen(_upnp_scpd_template) + strlen(al) + strlen(svl);
-  char *scpd = (char *)malloc(len);
-  sprintf(scpd, _upnp_scpd_template, al, svl);
-  client.print(scpd);
-  free(scpd);
-  free(al);
-  free(svl);
-}
-
 void UPnPClass::addService(UPnPService *srv) {
-  this->services = srv;
+  if (nservices == maxservices) {
+    maxservices += N_SERVICES;
+    services = (UPnPService **)realloc(services, maxservices * sizeof(UPnPService *));
+  }
+  services[nservices++] = srv;
 }
 
-const char *UPnPClass::mimeTypeXML = "text/xml; charset=\"utf-8\"";
-const char *UPnPClass::mimeTypeText = "text/plain; charset=\"utf-8\"";
-const char *UPnPClass::envelopeHeader = 
-    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n"
-    "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">\r\n"
-    "<s:body>\r\n";
-const char *UPnPClass::envelopeTrailer = 
-    "</s:body>\r\n"    
-    "</s:Envelope>\r\n";
+/*
+ * This function is a pass-through for the member function just below.
+ */
+void staticSendSCPD() {
+  UPnP.SendSCPD();
+}
+
+/*
+ * Use the URL that the web server received, isolate the UPnPService name from it,
+ * find that service, and call its SendSCPD method.
+ */
+void UPnPClass::SendSCPD() {
+#ifdef DEBUG_UPNP
+  DEBUG_UPNP.printf("SendSCPD(%s)\n", upnp_headers[UPNP_HEADER_URL]);
+#endif
+
+  // Find out which UPnPService this was called for
+  // The URL here is e.g. "/LEDService/scpd.xml"
+  char *url = upnp_headers[UPNP_HEADER_URL];
+  char *p;
+  char *name = url+1;
+
+  for (p=name; *p && *p != '/'; p++) ;
+  if (*p == '\0')
+    return;	// silently
+
+  *p = '\0';
+  for (int i=0; i<nservices; i++)
+    if (strcmp(name, services[i]->serviceName) == 0) {
+#ifdef DEBUG_UPNP
+      DEBUG_UPNP.printf("SendSCPD : service %d, %s\n", i, services[i]->serviceName);
+#endif
+
+      // Call it !
+      services[i]->SendSCPD(HTTP.client());
+      return;
+    }
+}

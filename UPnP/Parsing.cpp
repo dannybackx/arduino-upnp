@@ -204,6 +204,11 @@ bool WebServer::_parseRequest(WiFiClient& client) {
     String headerName;
     String headerValue;
 
+    // Pretend these are such headers
+    upnp_headers[UPNP_HEADER_METHOD] = newstr(methodStr.c_str());
+    upnp_headers[UPNP_HEADER_URL] = newstr(url.c_str());
+    upnp_headers[UPNP_HEADER_SEARCH] = newstr(searchStr.c_str());
+
     // Parse headers
     while(1) {
       req = client.readStringUntil('\r');

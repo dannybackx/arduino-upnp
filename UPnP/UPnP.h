@@ -57,7 +57,7 @@ class UPnPClass {
     void setManufacturerURL(const char *url);
 
     void schema(WiFiClient client);
-    void SCPD(WiFiClient client);
+    void SendSCPD();
 
     void addService(UPnPService *service);
 
@@ -71,9 +71,12 @@ class UPnPClass {
     WebServer *http;
 
   protected:
-    UPnPService *services;
+    UPnPService **services;
+    int nservices, maxservices;
 };
 
 extern UPnPClass UPnP;	// FIXME
+extern const char *_http_header;
+extern void staticSendSCPD();
 
 #endif

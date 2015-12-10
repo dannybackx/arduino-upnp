@@ -91,6 +91,8 @@ class UPnPService {
     // void SendNotify(StateVariable &sv);
     void SendNotify(const char *varName);
 
+    void SendSCPD(WiFiClient client);
+
   private:
     UPnPSubscriber **subscriber;
     int nsubscribers, maxsubscribers;

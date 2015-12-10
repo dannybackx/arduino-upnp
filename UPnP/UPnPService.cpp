@@ -30,7 +30,7 @@
 #include "UPnP/Headers.h"
 
 #undef	UPNP_DEBUG
-//#define	UPNP_DEBUG Serial
+// #define	UPNP_DEBUG Serial
 #undef	UPNP_DEBUGx
 //#define	UPNP_DEBUGx Serial
 #undef UPNP_DEBUGmem
@@ -51,6 +51,18 @@ static const char *_get_service_xml_template =
     "<eventSubURL>/%s/%s</eventSubURL>"
     "<SCPDURL>/%s/%s</SCPDURL>"
   "</service>";
+
+static const char *_upnp_scpd_template =
+  "<?xml version=\"1.0\"?>"
+  "<scpd xmlns=\"urn:danny-backx-info:service-1-0\">"
+  "<specVersion>"
+  "<major>1</major>"
+  "<minor>0</minor>"
+  "</specVersion>"
+  "%s"			// getActionListXML
+  "%s"			// getStateVariableListXML
+  "</scpd>\r\n"
+  "\r\n";
 
 UPnPService::UPnPService(const char *name, const char *serviceType, const char *serviceId) {
 #ifdef UPNP_DEBUG
@@ -145,6 +157,10 @@ char *UPnPService::getServiceXML() {
     serviceName, _event_xml,
     serviceName, _scpd_xml);
 
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("UPnPService UPnPService::getServiceXML -> %s\n", r);
+#endif
+
   return r;
 }
 
@@ -164,6 +180,10 @@ char *UPnPService::getActionListXML() {
     strcat(r, actions[i].xml);
   }
   strcat(r, _actionListEnd);
+
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("UPnPService UPnPService::getActionListXML -> %s\n", r);
+#endif
 
   return r;
 }
@@ -203,10 +223,6 @@ char *UPnPService::getStateVariableListXML() {
 extern WebServer HTTP;
 UPnPService *srv;
 
-void SendSCPD() {
-  UPnP.SCPD(HTTP.client());
-}
-
 void SendDescription() {
   UPnP.schema(HTTP.client());
 }
@@ -238,7 +254,7 @@ void UPnPService::ControlHandler() {
 #endif
 
   const char *msg = HTTP.plainBuf;
-#ifdef UPNP_DEBUGx
+#ifdef UPNP_DEBUG
   UPNP_DEBUG.printf("Message len %d : >>>> %s <<<<\n", HTTP.plainLen, msg);
 #endif
   const char *body1 = strstr(msg, "<s:Body>");
@@ -291,6 +307,8 @@ void UPnPService::ControlHandler() {
   // else silently ignore again
 }
 
+extern void SendSCPD();
+
 void UPnPService::begin() {
   HTTP.on(_description_xml, HTTP_GET, SendDescription);
 
@@ -301,7 +319,7 @@ void UPnPService::begin() {
   int len = strlen(_scpd_xml) + 3 + strlen(serviceName);
   char *url = (char *)malloc(len);
   sprintf(url, "/%s/%s", serviceName, _scpd_xml);
-  HTTP.on(url, HTTP_GET, SendSCPD);
+  HTTP.on(url, HTTP_GET, staticSendSCPD);
 #ifdef UPNP_DEBUG
   UPNP_DEBUG.printf("UPnPService::begin(%s)\n", url); 
 #endif
@@ -509,4 +527,20 @@ StateVariable *UPnPService::lookupVariable(char *name) {
       if (strcasecmp(name, variables[i]->name) == 0)
         return variables[i];
   return NULL;
+}
+
+void UPnPService::SendSCPD(WiFiClient client) {
+  uint32_t ip = WiFi.localIP();
+  client.print(_http_header);
+
+  char *al = getActionListXML();
+  char *svl = getStateVariableListXML();
+
+  int len = strlen(_upnp_scpd_template) + strlen(al) + strlen(svl);
+  char *scpd = (char *)malloc(len);
+  sprintf(scpd, _upnp_scpd_template, al, svl);
+  client.print(scpd);
+  free(scpd);
+  free(al);
+  free(svl);
 }

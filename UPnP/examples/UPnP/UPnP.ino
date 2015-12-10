@@ -3,7 +3,10 @@
 #include <UPnP/UPnPDevice.h>
 #include <UPnP.h>
 #include <UPnP/SSDP.h>
+
 #include "MotionSensorService.h"
+#include "UPnP/LEDService.h"
+
 // #include "GDBStub.h"
 
 // Stuff to sync this source file in github
@@ -75,6 +78,9 @@ void setup() {
 #else
     MotionSensorService ms_srv = MotionSensorService();
     UPnP.addService(&ms_srv);
+
+    LEDService led_srv = LEDService();
+    UPnP.addService(&led_srv);
 
     Serial.printf("Ready!\n");
     while (1) {
