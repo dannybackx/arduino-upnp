@@ -38,10 +38,6 @@
 
 extern WebServer HTTP;
 
-extern "C" {
-  #include "user_interface.h"
-}
-
 // #define	DEBUG_UPNP	Serial
 
 UPnPClass UPnP;	// FIXME
@@ -61,12 +57,19 @@ void UPnPClass::begin(WebServer *http, UPnPDevice *device) {
   this->http = http;
 }
 
-/* static */ const char *_http_header =
+const char *_http_header =
   "HTTP/1.1 200 OK\r\n"
   "Content-Type: text/xml\r\n"
   "Connection: close\r\n"
   "Access-Control-Allow-Origin: *\r\n"
   "\r\n";
+
+// This needs a %u.%u.%u.%u pattern
+#define IPAddressString(addr) IP1(addr), IP2(addr), IP3(addr), IP4(addr)
+#define	IP1(addr)	(uint8_t)(addr & 0xFF)
+#define	IP2(addr)	(uint8_t)((addr >> 8) & 0xFF)
+#define	IP3(addr)	(uint8_t)((addr >> 16) & 0xFF)
+#define	IP4(addr)	(uint8_t)((addr >> 24) & 0xFF)
 
 static const char *_upnp_device_template_1 =
   "<?xml version=\"1.0\"?>"
@@ -111,7 +114,7 @@ void UPnPClass::schema(WiFiClient client) {
   client.printf(_http_header);
 
   client.printf(_upnp_device_template_1,
-    IP2STR(&ip), device->getPort(),
+    IPAddressString(ip), device->getPort(),
     device->getDeviceURN(),
     device->getFriendlyName(),
     device->getPresentationURL(),
