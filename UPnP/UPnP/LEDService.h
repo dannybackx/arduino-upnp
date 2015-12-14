@@ -35,12 +35,15 @@
 #define MSS_STATE_LENGTH  16
 
 enum LEDState {
-    LED_STATE_OFF,
+    // Detect that begin() wasn't called yet
+    LED_STATE_INVALID,
 
+    LED_STATE_OFF,
     LED_STATE_BLINK,
     LED_STATE_ALARM,
     LED_STATE_ON,
 
+    // Add stuff before, not after this
     LED_STATE_END
 };
 

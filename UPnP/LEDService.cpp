@@ -127,6 +127,10 @@ LEDService::~LEDService() {
 }
 
 void LEDService::begin() {
+  if (state != LED_STATE_INVALID)
+    return;	// Already been here
+  state = LED_STATE_OFF;
+
   UPnPService::begin();
 #ifdef DEBUG
   DEBUG.println("LEDService::begin");
