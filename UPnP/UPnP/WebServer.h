@@ -89,16 +89,20 @@ public:
   void sendContent_P(PGM_P content);
   void sendContent_P(PGM_P content, size_t size);
 
-template<typename T> size_t streamFile(T &file, const String& contentType){
-  setContentLength(file.size());
-  if (String(file.name()).endsWith(".gz") &&
+  template<typename T> size_t streamFile(T &file, const String& contentType) {
+    setContentLength(file.size());
+    if (String(file.name()).endsWith(".gz") &&
       contentType != "application/x-gzip" &&
-      contentType != "application/octet-stream"){
-    sendHeader("Content-Encoding", "gzip");
+      contentType != "application/octet-stream") {
+        sendHeader("Content-Encoding", "gzip");
+    }
+    send(200, contentType, "");
+    return _currentClient.write(file, HTTP_DOWNLOAD_UNIT_SIZE);
   }
-  send(200, contentType, "");
-  return _currentClient.write(file, HTTP_DOWNLOAD_UNIT_SIZE);
-}
+
+private:
+  void CleanHeaders();
+  const char *getContentType(const char *filename);
 
 protected:
   void _addRequestHandler(WebRequestHandler* handler);

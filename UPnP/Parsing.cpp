@@ -33,13 +33,6 @@
 
 extern char *upnp_headers[];
 
-char *newstr(const char *src) {
-  int len = strlen(src);
-  char *r = (char *)malloc(len+1);
-  strcpy(r, src);
-  return r;
-}
-
 bool WebServer::_parseRequest(WiFiClient& client) {
   // Read the first line of HTTP request
   String req = client.readStringUntil('\r');
@@ -117,32 +110,36 @@ bool WebServer::_parseRequest(WiFiClient& client) {
       }
     }
 
-      if (searchStr != "")
-        searchStr += '&';
+    if (searchStr != "")
+      searchStr += '&';
 
-      // some clients send headers first and data after (like we do), so give them a chance
-      int tries = 100;//100ms max wait
-      while(!client.available() && tries--)delay(1);
-      size_t plainLen = client.available();
-      char *plainBuf = (char*)malloc(plainLen+1);
-      if (this->plainBuf)
-        free(this->plainBuf);
-      this->plainBuf = plainBuf;	// FIXME Danny
-      this->plainLen = plainLen;	// FIXME Danny
-      client.readBytes(plainBuf, plainLen);
-      plainBuf[plainLen] = '\0';
+    // some clients send headers first and data after (like we do), so give them a chance
+    int tries = 100;//100ms max wait
+    while (!client.available() && tries--) delay(1);
+    size_t plainLen = client.available();
+    char *plainBuf = (char*)malloc(plainLen+1);
+    if (this->plainBuf)
+      free(this->plainBuf);
+    this->plainBuf = plainBuf;	// FIXME Danny
+    this->plainLen = plainLen;	// FIXME Danny
+    client.readBytes(plainBuf, plainLen);
+    plainBuf[plainLen] = '\0';
 #ifdef DEBUG_OUTPUT
-      DEBUG_OUTPUT.print("Plain: ");
-      DEBUG_OUTPUT.println(plainBuf);
+    DEBUG_OUTPUT.print("Plain: ");
+    DEBUG_OUTPUT.println(plainBuf);
 #endif
-      if (plainBuf[0] == '{' || plainBuf[0] == '[' || strstr(plainBuf, "=") == NULL) {
-        //plain post json or other data
-        searchStr += "plain=";
-        searchStr += plainBuf;
-      } else {
-        searchStr += plainBuf;
-      }
 
+#if 1
+    searchStr += plainBuf;
+#else
+    if (plainBuf[0] == '{' || plainBuf[0] == '[' || strstr(plainBuf, "=") == NULL) {
+      // plain post json or other data
+      searchStr += "plain=";
+      searchStr += plainBuf;
+    } else {
+      searchStr += plainBuf;
+    }
+#endif
     /* End HTTP_POST, HTTP_PUT, HTTP_PATCH, HTTP_DELETE */
   } else if (method == HTTP_SUBSCRIBE) {
     String headerName;
@@ -175,24 +172,11 @@ bool WebServer::_parseRequest(WiFiClient& client) {
         _hostHeader = headerValue;
       }
     }
-    // Pretend these are such headers
-    // upnp_headers[UPNP_HEADER_METHOD] = newstr(methodStr.c_str());
-    // upnp_headers[UPNP_HEADER_URL] = newstr(url.c_str());
-    // upnp_headers[UPNP_HEADER_SEARCH] = newstr(searchStr.c_str());
-#ifdef DEBUG_OUTPUT
-    // DEBUG_OUTPUT.printf("HEADER [%s] {%s}\n", "Method", upnp_headers[UPNP_HEADER_METHOD]);
-    // DEBUG_OUTPUT.printf("HEADER [%s] {%s}\n", "URL", upnp_headers[UPNP_HEADER_URL]);
-    // DEBUG_OUTPUT.printf("HEADER [%s] {%s}\n", "Search", upnp_headers[UPNP_HEADER_SEARCH]);
-#endif
+    /* HTTP_SUBSCRIBE */
   } else {
     /* HTTP_GET, HTTP_OPTIONS */
     String headerName;
     String headerValue;
-
-    // Pretend these are such headers
-    // upnp_headers[UPNP_HEADER_METHOD] = newstr(methodStr.c_str());
-    // upnp_headers[UPNP_HEADER_URL] = newstr(url.c_str());
-    // upnp_headers[UPNP_HEADER_SEARCH] = newstr(searchStr.c_str());
 
     // Parse headers
     while(1) {

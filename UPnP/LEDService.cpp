@@ -35,6 +35,7 @@ extern WebServer HTTP;
 static void GetVersion();
 
 #define DEBUG Serial
+#define HAVE_LED
 const int led = 0;      // ESP8266-12E D3 (GPIO0)
 
 // Printf style template, parameters : serviceType, state
@@ -134,21 +135,56 @@ void LEDService::begin() {
 #ifdef HAVE_LED
   pinMode(led, OUTPUT);
 #endif
+
+  state = LED_STATE_OFF;
 }
 
-void LEDService::poll() {
-}
-
-#ifdef LED_GLOBAL
-LEDService LED;
-#endif
-
-const char *LEDService::GetState() {
+enum LEDState LEDService::GetState() {
   return state;
 }
 
-void LEDService::SetState() {
-  // FIXME to be implemented
+void LEDService::SetState(enum LEDState state) {
+  this->state = state;
+}
+
+/*
+ * Note this depends on how frequently the caller calls this method.
+ */
+void LEDService::setPeriod(int active, int passive) {
+  this->active = active;
+  this->passive = passive;
+  this->count = 0;
+}
+
+void LEDService::periodic() {
+  switch (state) {
+  case LED_STATE_ALARM:
+  case LED_STATE_ON:
+    digitalWrite(led, HIGH);
+    break;
+
+  case LED_STATE_BLINK:
+    periodicBlink();
+    break;
+
+  case LED_STATE_OFF:
+    digitalWrite(led, LOW);
+    break;
+  }
+}
+
+void LEDService::periodicBlink() {
+  count++;
+
+  // The LED is on between 0 and active
+  if (count == active)
+    digitalWrite(led, LOW);
+
+  // The LED is off between active and active+passive
+  if (count == active + passive) {
+      count = 0;
+    digitalWrite(led, HIGH);
+  }
 }
 
 // Example of a static function to handle UPnP requests : only access to global variables here.

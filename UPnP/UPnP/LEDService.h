@@ -34,6 +34,16 @@
 
 #define MSS_STATE_LENGTH  16
 
+enum LEDState {
+    LED_STATE_OFF,
+
+    LED_STATE_BLINK,
+    LED_STATE_ALARM,
+    LED_STATE_ON,
+
+    LED_STATE_END
+};
+
 class LEDService : public UPnPService {
   public:
     LEDService();
@@ -41,20 +51,22 @@ class LEDService : public UPnPService {
     LEDService(const char *serviceType, const char *serviceId);
     ~LEDService();
     void begin();
-    const char *GetState();
-    void SetState();
+    enum LEDState GetState();
+    void SetState(enum LEDState);
     void GetStateHandler();
     void SetStateHandler();
 
-    void poll();
+    void setPeriod(int active, int passive);
+    void periodic();
     
   private:
-    char state[MSS_STATE_LENGTH];
-    WebServer *http;
-    int oldstate, newstate;
+    enum LEDState state;
+    int count, passive, active;
+    void periodicBlink();
+
 };
 
-#undef LED_GLOBAL
+#define LED_GLOBAL
 
 #ifdef LED_GLOBAL
 extern LEDService LED;

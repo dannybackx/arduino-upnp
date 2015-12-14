@@ -3,9 +3,13 @@
 #include <UPnP/UPnPDevice.h>
 #include <UPnP.h>
 #include <UPnP/SSDP.h>
+#include <FS.h>
+
+//#include <sntp.h>
 
 #include "MotionSensorService.h"
 #include "UPnP/LEDService.h"
+
 
 // #include "GDBStub.h"
 
@@ -44,9 +48,44 @@ void setup() {
     
     IPAddress ip = WiFi.localIP();
     Serial.print("MAC "); Serial.print(WiFi.macAddress());
-    Serial.printf(", SSID {%s}, IP address %d.%d.%d.%d\n", WiFi.SSID(), ip[0], ip[1], ip[2], ip[3]);
+    Serial.print(", SSID {");
+    Serial.print(WiFi.SSID());
+    Serial.printf("}, IP address %d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
+    // Serial.printf(", SSID {%s}, IP address %d.%d.%d.%d\n", WiFi.SSID(), ip[0], ip[1], ip[2], ip[3]);
     WiFi.printDiag(Serial);
 
+/* */   
+    SPIFFS.begin();
+    Dir dir = SPIFFS.openDir("/");
+    Serial.println("SPIFFS directory {/} :");
+    while (dir.next()) {
+      Serial.print("  "); Serial.println(dir.fileName());
+    }
+    
+    FSInfo fs_info;
+    SPIFFS.info(fs_info);
+    Serial.printf("SPIFFS total %d used %d maxpathlength %d\n",
+      fs_info.totalBytes, fs_info.usedBytes, fs_info.maxPathLength);
+
+    SPIFFS.remove("config.xml");
+    // Create a file
+    File f = SPIFFS.open("/config.xml", "r");
+    if (f) {
+      Serial.printf("SPIFFS : /config.xml exists, content %d bytes\n", f.size());
+    } else {
+      f = SPIFFS.open("/config.xml", "w");
+      f.printf("<config>hello there</config>\n");
+      f.close();
+    }
+/* */
+
+/*
+    sntp_init();
+    sint8 tz = sntp_get_timezone();
+    // sntp_asctime();
+/* */
+
+    
     Serial.printf("Starting HTTP...\n");
     HTTP.on("/index.html", HTTP_GET, [](){
       // Serial.println("Sending hello");
@@ -80,12 +119,18 @@ void setup() {
     UPnP.addService(&ms_srv);
 
     LEDService led_srv = LEDService();
+    led_srv.begin();
+    led_srv.setPeriod(5, 495);
+    led_srv.SetState(LED_STATE_BLINK);
     UPnP.addService(&led_srv);
-
+/* */
     Serial.printf("Ready!\n");
     while (1) {
       ms_srv.poll();
       HTTP.handleClient();
+      led_srv.periodic();
+      
+      // Serial.printf("After HandleClient : Heap %X\n", ESP.getFreeHeap());
       delay(10);
     }
 #endif
@@ -97,6 +142,7 @@ void setup() {
 
 void loop() {
   HTTP.handleClient();
+  Serial.printf("After HandleClient : Heap %X\n", ESP.getFreeHeap());
   // Serial.printf("Called handleClient()...\n");
   delay(10);
 }

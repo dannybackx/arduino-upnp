@@ -22,6 +22,10 @@
   Modified 8 May 2015 by Hristo Gochkov (proper post and file upload handling)
   Simplified by Danny Backx : remove parsing (not needed for XML),
   (hopefully) remove memory issues.
+
+  getContentType() derived from work
+    Copyright (c) 2015 Hristo Gochkov. All rights reserved.
+  in the FSWebServer example, also licensed according to the GNU Lesser GPL.
 */
 
 
@@ -31,6 +35,7 @@
 #include "UPnP/WebServer.h"
 #include "FS.h"
 #include "UPnP/WebRequestHandler.h"
+#include "UPnP/Headers.h"
 
 /*
  * Select only one of these lines :
@@ -49,6 +54,13 @@ WebServer::WebServer(int port)
   plainLen = 0;
 }
 
+void WebServer::CleanHeaders() {
+  for (int i=UPNP_METHOD_NONE; i<UPNP_END_METHODS; i++)
+    if (upnp_headers[i]) {
+      free(upnp_headers[i]);
+    }
+}
+
 WebServer::~WebServer() {
   if (!_firstHandler)
     return;
@@ -58,8 +70,14 @@ WebServer::~WebServer() {
     delete handler;
     handler = next;
   }
-  plainBuf = (char *)0;
+  
+  if (plainBuf) {
+    free(plainBuf);
+    plainBuf = NULL;
+  }
   plainLen = 0;
+
+  CleanHeaders();
 }
 
 void WebServer::begin() {
@@ -112,6 +130,8 @@ void WebServer::handleClient() {
   _currentClient = client;
   _contentLength = CONTENT_LENGTH_NOT_SET;
   _handleRequest();
+
+  CleanHeaders();
 }
 
 void WebServer::sendHeader(const String& name, const String& value, bool first) {
@@ -303,8 +323,10 @@ void WebServer::onNotFound(THandlerFunction fn) {
 }
 
 void WebServer::_handleRequest() {
+  const char *fn = uri().c_str();
+
 #ifdef DEBUG_OUTPUT
-  DEBUG_OUTPUT.printf("handleRequest()\n");
+  DEBUG_OUTPUT.printf("handleRequest(%s)\n", fn);
 #endif
 
   WebRequestHandler* handler;
@@ -313,18 +335,27 @@ void WebServer::_handleRequest() {
       break;
   }
 
-  if (!handler){
+  if (!handler) {
 #ifdef DEBUG_OUTPUT
     DEBUG_OUTPUT.println("request handler not found");
 #endif
 
-    if(_notFoundHandler) {
+    // Read from filesystem
+    if (SPIFFS.exists(fn)) {
+      File file = SPIFFS.open(fn, "r");
+      const char *contentType = "text/xml";
+      size_t sent = streamFile(file, getContentType(fn));
+      file.close();
+    } else if (_notFoundHandler) {
+      // Externally provided handler ?
       _notFoundHandler();
-    }
-    else {
+    } else {
+      // Simplistic builtin "not found" handler
       send(404, "text/plain", String("Not found: ") + _currentUri);
     }
   }
+
+  // Common to all cases : await connection close.
 
   uint16_t maxWait = HTTP_MAX_CLOSE_WAIT;
   while(_currentClient.connected() && maxWait--) {
@@ -343,4 +374,41 @@ const char* WebServer::_responseCodeToString(int code) {
     case 500: return "Fail";
     default:  return "";
   }
+}
+
+const char *lastChar(const char *s) {
+  const char *ptr;
+  for (ptr=s; *ptr; ptr++)
+    ;
+  return ptr;
+}
+
+bool endsWith(const char *last, const char *suffix) {
+  if (suffix == NULL)
+    return false;
+  int len = strlen(suffix);
+  const char *ptr = last - len;
+  if (strcmp(ptr, suffix) == 0)
+    return true;
+  return false;
+}
+
+const char *WebServer::getContentType(const char *filename) {
+  const char *last = lastChar(filename);
+
+  if (endsWith(last, ".htm")) return "text/html";
+  else if (endsWith(last, ".xml")) return "text/xml";
+  else if (endsWith(last, ".html")) return "text/html";
+  else if (endsWith(last, ".css")) return "text/css";
+  else if (endsWith(last, ".js")) return "application/javascript";
+  else if (endsWith(last, ".png")) return "image/png";
+  else if (endsWith(last, ".gif")) return "image/gif";
+  else if (endsWith(last, ".jpg")) return "image/jpeg";
+  else if (endsWith(last, ".ico")) return "image/x-icon";
+  else if (endsWith(last, ".xml")) return "text/xml";
+  else if (endsWith(last, ".pdf")) return "application/x-pdf";
+  else if (endsWith(last, ".zip")) return "application/x-zip";
+  else if (endsWith(last, ".gz")) return "application/x-gzip";
+
+  return "text/plain";
 }
