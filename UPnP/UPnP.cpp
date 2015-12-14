@@ -64,13 +64,6 @@ const char *_http_header =
   "Access-Control-Allow-Origin: *\r\n"
   "\r\n";
 
-// This needs a %u.%u.%u.%u pattern
-#define IPAddressString(addr) IP1(addr), IP2(addr), IP3(addr), IP4(addr)
-#define	IP1(addr)	(uint8_t)(addr & 0xFF)
-#define	IP2(addr)	(uint8_t)((addr >> 8) & 0xFF)
-#define	IP3(addr)	(uint8_t)((addr >> 16) & 0xFF)
-#define	IP4(addr)	(uint8_t)((addr >> 24) & 0xFF)
-
 static const char *_upnp_device_template_1 =
   "<?xml version=\"1.0\"?>"
   "<root xmlns=\"urn:schemas-upnp-org:device-1-0\">"
@@ -110,11 +103,11 @@ const char *UPnPClass::envelopeTrailer =
 
 // Called by HTTP server when our description XML is queried
 void UPnPClass::schema(WiFiClient client) {
-  uint32_t ip = WiFi.localIP();
+  IPAddress ip = WiFi.localIP();
   client.printf(_http_header);
 
   client.printf(_upnp_device_template_1,
-    IPAddressString(ip), device->getPort(),
+    ip.toString().c_str(), device->getPort(),
     device->getDeviceURN(),
     device->getFriendlyName(),
     device->getPresentationURL(),

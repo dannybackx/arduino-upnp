@@ -47,11 +47,9 @@ void setup() {
   if(WiFi.waitForConnectResult() == WL_CONNECTED){
     
     IPAddress ip = WiFi.localIP();
+    String ips = ip.toString();
     Serial.print("MAC "); Serial.print(WiFi.macAddress());
-    Serial.print(", SSID {");
-    Serial.print(WiFi.SSID());
-    Serial.printf("}, IP address %d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
-    // Serial.printf(", SSID {%s}, IP address %d.%d.%d.%d\n", WiFi.SSID(), ip[0], ip[1], ip[2], ip[3]);
+    Serial.printf(", SSID {%s}, IP address %s\n", WiFi.SSID().c_str(), ips.c_str());
     WiFi.printDiag(Serial);
 
 /* */   
