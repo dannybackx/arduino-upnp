@@ -204,6 +204,7 @@ bool WebServer::_parseRequest(WiFiClient& client) {
       }
     }
   }
+
   client.flush();
 
 #ifdef DEBUG_OUTPUT

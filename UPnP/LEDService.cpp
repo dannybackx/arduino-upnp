@@ -34,7 +34,7 @@
 extern WebServer HTTP;
 static void GetVersion();
 
-#define DEBUG Serial
+// #define DEBUG Serial
 #define HAVE_LED
 const int led = 0;      // ESP8266-12E D3 (GPIO0)
 

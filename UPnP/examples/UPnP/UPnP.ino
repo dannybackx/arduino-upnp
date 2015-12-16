@@ -9,7 +9,7 @@
 
 #include "MotionSensorService.h"
 #include "UPnP/LEDService.h"
-
+#include "UPnP/DHTSensorService.h"
 
 // #include "GDBStub.h"
 
@@ -30,7 +30,6 @@ char *deviceURN = "urn:schemas-upnp-org:device:Basic:1";
 
 WebServer HTTP(80);
 UPnPDevice device;
-// UPnPClass UPnP;
 
 void setup() {
   Serial.begin(115200);
@@ -52,14 +51,14 @@ void setup() {
     Serial.printf(", SSID {%s}, IP address %s\n", WiFi.SSID().c_str(), ips.c_str());
     WiFi.printDiag(Serial);
 
-/* */   
+#ifdef ENABLE_SPIFFS
     SPIFFS.begin();
     Dir dir = SPIFFS.openDir("/");
     Serial.println("SPIFFS directory {/} :");
     while (dir.next()) {
       Serial.print("  "); Serial.println(dir.fileName());
     }
-    
+
     FSInfo fs_info;
     SPIFFS.info(fs_info);
     Serial.printf("SPIFFS total %d used %d maxpathlength %d\n",
@@ -75,7 +74,7 @@ void setup() {
       f.printf("<config>hello there</config>\n");
       f.close();
     }
-/* */
+#endif
 
 /*
     sntp_init();
@@ -107,31 +106,34 @@ void setup() {
     SSDP.begin(device);
 
     UPnP.begin(&HTTP, &device);
-#ifdef MSS_GLOBAL
-    MSS = MotionSensorService();
-    UPnP.addService(&MSS);
-    
-    Serial.printf("Ready!\n");
-#else
+
     MotionSensorService ms_srv = MotionSensorService();
     UPnP.addService(&ms_srv);
 
+#ifdef ENABLE_LED_SERVICE
     LEDService led_srv = LEDService();
     led_srv.begin();
     led_srv.setPeriod(5, 495);
     led_srv.SetState(LED_STATE_BLINK);
     UPnP.addService(&led_srv);
-/* */
+#endif
+#ifdef ENABLE_DHT_SERVICE
+    DHTSensorService dht = DHTSensorService();
+    UPnP.addService(&dht);
+    dht.begin();
+#endif
+
     Serial.printf("Ready!\n");
     while (1) {
       ms_srv.poll();
       HTTP.handleClient();
+#ifdef ENABLE_LED_SERVICE
       led_srv.periodic();
-      
+#endif
       // Serial.printf("After HandleClient : Heap %X\n", ESP.getFreeHeap());
       delay(10);
     }
-#endif
+
   } else {
     Serial.printf("WiFi Failed\n");
     while(1) delay(100);

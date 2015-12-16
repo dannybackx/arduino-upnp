@@ -38,6 +38,7 @@
 
 extern WebServer HTTP;
 
+#undef	DEBUG_UPNP
 // #define	DEBUG_UPNP	Serial
 
 UPnPClass UPnP;	// FIXME
@@ -71,7 +72,7 @@ static const char *_upnp_device_template_1 =
       "<major>1</major>"
       "<minor>0</minor>"
     "</specVersion>"
-    "<URLBase>http://%u.%u.%u.%u:%u/</URLBase>" /* WiFi.localIP(), _port */
+    "<URLBase>http://%s:%u/</URLBase>" /* WiFi.localIP(), _port */
     "<device>"
       "<deviceType>%s</deviceType>"
       "<friendlyName>%s</friendlyName>"
@@ -103,9 +104,9 @@ const char *UPnPClass::envelopeTrailer =
 
 // Called by HTTP server when our description XML is queried
 void UPnPClass::schema(WiFiClient client) {
-  IPAddress ip = WiFi.localIP();
   client.printf(_http_header);
 
+  IPAddress ip = WiFi.localIP();
   client.printf(_upnp_device_template_1,
     ip.toString().c_str(), device->getPort(),
     device->getDeviceURN(),

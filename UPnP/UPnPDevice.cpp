@@ -31,6 +31,7 @@
 #include "UPnP/UPnPDevice.h"
 #include "debug.h"
 
+#undef DEBUG_UPNP
 // #define DEBUG_UPNP	Serial
 
 UPnPDevice::UPnPDevice() {

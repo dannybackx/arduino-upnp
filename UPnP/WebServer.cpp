@@ -58,6 +58,7 @@ void WebServer::CleanHeaders() {
   for (int i=UPNP_METHOD_NONE; i<UPNP_END_METHODS; i++)
     if (upnp_headers[i]) {
       free(upnp_headers[i]);
+      upnp_headers[i] = NULL;
     }
 }
 
@@ -76,15 +77,9 @@ WebServer::~WebServer() {
     plainBuf = NULL;
   }
   plainLen = 0;
-
-  CleanHeaders();
 }
 
 void WebServer::begin() {
-#ifdef DEBUG_OUTPUT
-  DEBUG_OUTPUT.println("WebServer::begin()");
-#endif
-
   _server.begin();
 }
 
@@ -97,9 +92,6 @@ void WebServer::on(const char* uri, HTTPMethod method, WebServer::THandlerFuncti
 }
 
 void WebServer::_addRequestHandler(WebRequestHandler* handler) {
-#ifdef DEBUG_OUTPUT
-  DEBUG_OUTPUT.println("addRequestHandler()");
-#endif
     if (!_lastHandler) {
       _firstHandler = handler;
       _lastHandler = handler;
@@ -121,7 +113,6 @@ void WebServer::handleClient() {
   while(client.connected() && !client.available() && maxWait--){
     delay(1);
   }
-
 
   if (!_parseRequest(client)) {
     return;
@@ -323,10 +314,10 @@ void WebServer::onNotFound(THandlerFunction fn) {
 }
 
 void WebServer::_handleRequest() {
-  const char *fn = uri().c_str();
-
 #ifdef DEBUG_OUTPUT
-  DEBUG_OUTPUT.printf("handleRequest(%s)\n", fn);
+  DEBUG_OUTPUT.print("handleRequest(");
+  DEBUG_OUTPUT.print(uri());
+  DEBUG_OUTPUT.println(")");
 #endif
 
   WebRequestHandler* handler;
@@ -340,13 +331,17 @@ void WebServer::_handleRequest() {
     DEBUG_OUTPUT.println("request handler not found");
 #endif
 
+#ifdef ENABLE_SPIFFS
     // Read from filesystem
+    const char *fn = uri().c_str();
     if (SPIFFS.exists(fn)) {
       File file = SPIFFS.open(fn, "r");
       const char *contentType = "text/xml";
       size_t sent = streamFile(file, getContentType(fn));
       file.close();
-    } else if (_notFoundHandler) {
+    } else
+#endif
+    if (_notFoundHandler) {
       // Externally provided handler ?
       _notFoundHandler();
     } else {

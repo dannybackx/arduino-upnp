@@ -30,6 +30,10 @@
 #ifndef	__UPnP_H_
 #define	__UPnP_H_
 
+#define	ENABLE_SPIFFS
+#define	ENABLE_LED_SERVICE
+#define	ENABLE_DHT_SERVICE
+
 #include "UPnP/UPnPDevice.h"
 #include "UPnP/SSDP.h"
 #include "WiFiUdp.h"
@@ -42,7 +46,7 @@ class UPnPClass {
   public:
     UPnPClass();
     ~UPnPClass();
-    //void begin(UPnPDevice &device);
+
     void begin(WebServer *http, UPnPDevice *device);
 
     void setSchemaURL(const char *url);
@@ -75,7 +79,7 @@ class UPnPClass {
     int nservices, maxservices;
 };
 
-extern UPnPClass UPnP;	// FIXME
+extern UPnPClass UPnP;
 extern const char *_http_header;
 extern void staticSendSCPD();
 

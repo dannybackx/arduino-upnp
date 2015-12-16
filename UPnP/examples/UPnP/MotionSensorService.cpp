@@ -41,7 +41,7 @@ const int led = 0;      // ESP8266-12E D3 (GPIO0)
 // Printf style template, parameters : serviceType, state
 static const char *gsh_template = "<u:GetStateResponse xmlns=\"%s\">\r\n<State>%s</State>\r\n</u:GetStateResponse>\r\n";
 
-static const char *getStateXML = "<action>"
+static const char *getStateXML PROGMEM = "<action>"
   "<name>getState</name>"
   "<argumentList>"
   "<argument>"

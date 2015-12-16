@@ -36,7 +36,8 @@
 #include "lwip/igmp.h"
 #include "include/UdpContext.h"
 
-//#define DEBUG_SSDP  Serial
+#undef DEBUG_SSDP
+// #define DEBUG_SSDP  Serial
 
 #define SSDP_INTERVAL     1200
 #define SSDP_PORT         1900
