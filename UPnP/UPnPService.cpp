@@ -29,8 +29,8 @@
 #include "UPnP/WebClient.h"
 #include "UPnP/Headers.h"
 
-#undef	UPNP_DEBUG
-// #define	UPNP_DEBUG Serial
+// #undef	UPNP_DEBUG
+#define	UPNP_DEBUG Serial
 
 static const char *_description_xml = "/description.xml";
 
@@ -392,10 +392,10 @@ void UPnPService::EventHandler() {
   UPNP_DEBUG.println("UPnPService::EventHandler()");
 #endif
 
-  if (strcasecmp(HTTP.httpMethod(), "SUBSCRIBE") == 0) {
+  if (HTTP.method() == HTTP_SUBSCRIBE) {
     // Register the new subscriber
     UPnPSubscriber *ns = srv->Subscribe();
-  } else if (strcasecmp(HTTP.httpMethod(), "UNSUBSCRIBE") == 0) {
+  } else if (HTTP.method() == HTTP_UNSUBSCRIBE) {
     // FIXME
     srv->Unsubscribe();
   } else {

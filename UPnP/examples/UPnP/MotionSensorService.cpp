@@ -35,7 +35,8 @@ extern WebServer HTTP;
 static void GetVersion();
 
 #define DEBUG Serial
-const int sensor = 5;   // ESP8266-12E line D1 (GPIO5)
+//const int sensor = 5;   // ESP8266-12E line D1 (GPIO5)
+const int sensor = 4;   // ?
 const int led = 0;      // ESP8266-12E D3 (GPIO0)
 
 // Printf style template, parameters : serviceType, state

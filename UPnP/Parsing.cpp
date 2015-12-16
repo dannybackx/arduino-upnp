@@ -68,12 +68,9 @@ bool WebServer::_parseRequest(WiFiClient& client) {
   _currentMethod = method;
 
 #ifdef DEBUG_OUTPUT
-  DEBUG_OUTPUT.print("method: ");
-  DEBUG_OUTPUT.print(methodStr);
-  DEBUG_OUTPUT.print(" url: ");
-  DEBUG_OUTPUT.print(url);
-  DEBUG_OUTPUT.print(" search: ");
-  DEBUG_OUTPUT.println(searchStr);
+  DEBUG_OUTPUT.printf("method {%s}\n", _method);
+  DEBUG_OUTPUT.printf("url: %s\n", httpUri());
+  //DEBUG_OUTPUT.printf("search: %s\n", searchStr);
 #endif
 
   // below is needed only when POST type request
