@@ -29,8 +29,8 @@
 #include "UPnP/WebClient.h"
 #include "UPnP/Headers.h"
 
-// #undef	UPNP_DEBUG
-#define	UPNP_DEBUG Serial
+#undef	UPNP_DEBUG
+// #define	UPNP_DEBUG Serial
 
 static const char *_description_xml = "/description.xml";
 

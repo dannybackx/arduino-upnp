@@ -30,6 +30,7 @@
 
 
 #include <Arduino.h>
+#include "UPnP.h"
 #include "WiFiServer.h"
 #include "WiFiClient.h"
 #include "UPnP/WebServer.h"
@@ -40,8 +41,8 @@
 /*
  * Select only one of these lines :
  */
-#undef DEBUG_OUTPUT
-// #define DEBUG_OUTPUT Serial
+// #undef DEBUG_OUTPUT
+#define DEBUG_OUTPUT Serial
 
 WebServer::WebServer(int port)
 	: _server(port)
@@ -327,10 +328,6 @@ void WebServer::_handleRequest() {
   }
 
   if (!handler) {
-#ifdef DEBUG_OUTPUT
-    DEBUG_OUTPUT.println("request handler not found");
-#endif
-
 #ifdef ENABLE_SPIFFS
     // Read from filesystem
     const char *fn = uri().c_str();
@@ -341,12 +338,19 @@ void WebServer::_handleRequest() {
       file.close();
     } else
 #endif
-    if (_notFoundHandler) {
-      // Externally provided handler ?
-      _notFoundHandler();
-    } else {
-      // Simplistic builtin "not found" handler
-      send(404, "text/plain", String("Not found: ") + _currentUri);
+    {
+      // No handler, no file -> complain
+#ifdef DEBUG_OUTPUT
+      DEBUG_OUTPUT.println("request handler not found");
+#endif
+
+      if (_notFoundHandler) {
+        // Externally provided handler ?
+        _notFoundHandler();
+      } else {
+        // Simplistic builtin "not found" handler
+        send(404, "text/plain", String("Not found: ") + _currentUri);
+      }
     }
   }
 

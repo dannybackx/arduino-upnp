@@ -35,9 +35,17 @@ extern WebServer HTTP;
 static void GetVersion();
 
 #define DEBUG Serial
+// Note :
+//   avoid GPIO6 (D0) : it flashes the LED in the center of the ESP-12E board, but crashes the board when used as output
+//   avoid GPIO9 (SD2) : appears to be linked to "5V POWER"
 //const int sensor = 5;   // ESP8266-12E line D1 (GPIO5)
-const int sensor = 4;   // ?
-const int led = 0;      // ESP8266-12E D3 (GPIO0)
+const int sensor = 4;   // ESP8266-12E line D2 (GPIO4)
+const int led = 0;      // ESP8266-12E D3 (GPIO0), beware of using this : enter flash mode after reboot if LOW
+// ESP8266-12E line D6 (GPIO12)
+// ESP8266-12E line D5 (GPIO14)
+// ESP8266-12E line D7 (GPIO13)
+// ESP8266-12E line D8 (GPIO15)
+// ESP8266-12E line SD3 (GPIO10)
 
 // Printf style template, parameters : serviceType, state
 static const char *gsh_template = "<u:GetStateResponse xmlns=\"%s\">\r\n<State>%s</State>\r\n</u:GetStateResponse>\r\n";

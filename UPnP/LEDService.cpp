@@ -35,8 +35,9 @@ extern WebServer HTTP;
 static void GetVersion();
 
 // #define DEBUG Serial
-#define HAVE_LED
 const int led = 0;      // ESP8266-12E D3 (GPIO0)
+// Don't use the internal LED, it will crash (WDT reset) the device
+// const int led = 6;	// ESP8266-12E internal LED (GPIO6)
 
 // Printf style template, parameters : serviceType, state
 static const char *gsh_template = "<u:GetStateResponse xmlns=\"%s\">\r\n<State>%s</State>\r\n</u:GetStateResponse>\r\n";
@@ -136,9 +137,7 @@ void LEDService::begin() {
   DEBUG.println("LEDService::begin");
 #endif
 
-#ifdef HAVE_LED
   pinMode(led, OUTPUT);
-#endif
 
   state = LED_STATE_OFF;
 }
