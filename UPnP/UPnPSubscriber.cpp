@@ -80,8 +80,12 @@ void UPnPSubscriber::SendNotify(const char *varName) {
 #ifdef UPNP_DEBUG
   UPNP_DEBUG.println("SendNotify");
 #endif
-  if (varName == NULL)
+  if (varName == NULL) {
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.println("SendNotify varName NULL");
+#endif
     return;	// FIXME Silently ignore
+  }
   char *body = (char *)malloc(strlen(varName) + strlen(_notify_body_template));
   sprintf(body, _notify_body_template, varName);
 

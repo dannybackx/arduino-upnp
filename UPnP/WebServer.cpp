@@ -41,8 +41,8 @@
 /*
  * Select only one of these lines :
  */
-// #undef DEBUG_OUTPUT
-#define DEBUG_OUTPUT Serial
+#undef DEBUG_OUTPUT
+// #define DEBUG_OUTPUT Serial
 
 WebServer::WebServer(int port)
 	: _server(port)

@@ -38,6 +38,7 @@
 
 extern WebServer HTTP;
 
+// Choose one
 #undef	DEBUG_UPNP
 // #define	DEBUG_UPNP	Serial
 
@@ -174,6 +175,38 @@ void UPnPClass::SendSCPD() {
 
       // Call it !
       services[i]->SendSCPD(HTTP.client());
+      return;
+    }
+}
+
+void staticEventHandler() {
+  UPnP.EventHandler();
+}
+
+void UPnPClass::EventHandler() {
+#ifdef DEBUG_UPNP
+  DEBUG_UPNP.printf("UPnPClass::EventHandler(%s)\n", HTTP.httpUri());
+#endif
+
+  // Find out which UPnPService this was called for
+  // The URL here is e.g. "/LEDService/scpd.xml"
+  const char *url = HTTP.httpUri();
+  const char *name = url+1;
+  const char *p;
+
+  for (p=name; *p && *p != '/'; p++) ;
+  if (*p == '\0')
+    return;	// silently
+
+  int len = (p-name);
+  for (int i=0; i<nservices; i++)
+    if (strncmp(name, services[i]->serviceName, len) == 0) {
+#ifdef DEBUG_UPNP
+      DEBUG_UPNP.printf("UPnPClass::EventHandler : service %d, %s\n", i, services[i]->serviceName);
+#endif
+
+      // Call it !
+      services[i]->EventHandler();
       return;
     }
 }

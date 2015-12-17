@@ -67,7 +67,8 @@ class UPnPService {
     Action *findAction(const char *);
     StateVariable *lookupVariable(char *name);
 
-    static void EventHandler();
+    // static void EventHandler();
+    void EventHandler();
     static void ControlHandler();
 
     int nvariables, maxvariables;

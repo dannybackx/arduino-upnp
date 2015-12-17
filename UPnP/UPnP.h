@@ -39,6 +39,7 @@
 #include "WiFiUdp.h"
 #include "UPnP/UPnPService.h"
 #include "UPnP/WebServer.h"
+#include "UPnP/ConfigurationReader.h"
 
 #define	N_SERVICES	4
 
@@ -70,6 +71,8 @@ class UPnPClass {
     static const char *envelopeHeader;
     static const char *envelopeTrailer;
 
+    void EventHandler();
+
   private:
     UPnPDevice *device;
     WebServer *http;
@@ -77,10 +80,12 @@ class UPnPClass {
   protected:
     UPnPService **services;
     int nservices, maxservices;
+    void ReadConfiguration(const char *name, Configuration &config);
 };
 
 extern UPnPClass UPnP;
 extern const char *_http_header;
 extern void staticSendSCPD();
+extern void staticEventHandler();
 
 #endif

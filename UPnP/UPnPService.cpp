@@ -62,7 +62,7 @@ static const char *_upnp_scpd_template =
 
 UPnPService::UPnPService(const char *name, const char *serviceType, const char *serviceId) {
 #ifdef UPNP_DEBUG
-  UPNP_DEBUG.printf("UPnPService(%s)\n", name);
+  UPNP_DEBUG.printf("UPnPService(%s), %p\n", name, this);
 #endif
   nactions = 0;
   maxsubscribers = nsubscribers = 0;
@@ -333,7 +333,11 @@ void UPnPService::begin() {
   len = strlen(_event_xml) + 3 + strlen(serviceName);
   url = (char *)malloc(len);
   sprintf(url, "/%s/%s", serviceName, _event_xml);
-  HTTP.on(url, UPnPService::EventHandler);
+  // FIXME which HTTP commands should we implement ?
+  // HTTP.on(url, HTTP_GET, staticEventHandler);
+  HTTP.on(url, HTTP_SUBSCRIBE, staticEventHandler);
+  HTTP.on(url, HTTP_UNSUBSCRIBE, staticEventHandler);
+  //HTTP.on(url, UPnPService::EventHandler);
 #ifdef UPNP_DEBUG
   UPNP_DEBUG.printf("UPnPService::begin(%s)\n", url); 
 #endif
@@ -343,13 +347,19 @@ void UPnPService::begin() {
 }
 
 void UPnPService::SendNotify(const char *varName) {
-  if (0 < nsubscribers) {
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("UPnPService::SendNotify(%s), %d\n", varName, nsubscribers); 
+#endif
+  for (int i=0; i < nsubscribers; i++) {
     UPnPSubscriber *s = subscriber[0];
     s->SendNotify(varName);
   }
 }
 
 void UPnPService::SendNotify(UPnPSubscriber *s, const char *varName) {
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("UPnPService::SendNotify(_, %s)\n", varName); 
+#endif
   s->SendNotify(varName);
 }
 
@@ -392,12 +402,15 @@ void UPnPService::EventHandler() {
   UPNP_DEBUG.println("UPnPService::EventHandler()");
 #endif
 
+  // Figure out which service
+
+  // Ok now we're good to go, the variable "srv" points right
   if (HTTP.method() == HTTP_SUBSCRIBE) {
     // Register the new subscriber
-    UPnPSubscriber *ns = srv->Subscribe();
+    UPnPSubscriber *ns = Subscribe();
   } else if (HTTP.method() == HTTP_UNSUBSCRIBE) {
     // FIXME
-    srv->Unsubscribe();
+    Unsubscribe();
   } else {
     // silently ignore
   }
@@ -465,12 +478,10 @@ void UPnPService::Subscribe(UPnPSubscriber *ns) {
   nsubscribers++;
   for (int i=0; i<maxsubscribers; i++)
     if (subscriber[i] == NULL) {
-      // UPnPSubscriber *ps = new UPnPSubscriber();
-      // subscriber[i] = ps;
       subscriber[i] = ns;
 
 #ifdef UPNP_DEBUG
-  UPNP_DEBUG.printf("Subscribe -> nsubs %d\n", nsubscribers);
+  UPNP_DEBUG.printf("Subscribe -> nsubs %d (UPnPService %p)\n", nsubscribers, this);
 #endif
       return;
     }
