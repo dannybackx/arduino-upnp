@@ -34,8 +34,12 @@
 extern WebServer HTTP;
 static void GetVersion();
 
-// #define DEBUG Serial
-const int led = 0;      // ESP8266-12E D3 (GPIO0)
+static Configuration *config;
+int led;
+#define	LED_DEFAULT_PIN	0
+
+#define DEBUG Serial
+// const int led = 0;      // ESP8266-12E D3 (GPIO0)
 // Don't use the internal LED, it will crash (WDT reset) the device
 // const int led = 6;	// ESP8266-12E internal LED (GPIO6)
 
@@ -132,9 +136,27 @@ void LEDService::begin() {
     return;	// Already been here
   state = LED_STATE_OFF;
 
-  UPnPService::begin();
+  config = new Configuration("LED",
+    new ConfigurationItem("pin", 0),
+    new ConfigurationItem("name", NULL),
+    new ConfigurationItem("passive", 45),
+    new ConfigurationItem("active", 5),
+    NULL);
+  UPnPService::begin(config);
+  led = config->GetValue("pin");
+
+  if (config->configured("active") && config->configured("passive")) {
+    setPeriod(config->GetValue("active"), config->GetValue("passive"));
+    SetState(LED_STATE_BLINK);
 #ifdef DEBUG
-  DEBUG.println("LEDService::begin");
+    DEBUG.printf("LEDService blink %d %d\n",
+      config->GetValue("active"),
+      config->GetValue("passive"));
+#endif
+  }
+
+#ifdef DEBUG
+  DEBUG.printf("LEDService::begin (pin %d)\n", led);
 #endif
 
   pinMode(led, OUTPUT);

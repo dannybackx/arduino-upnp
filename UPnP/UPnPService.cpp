@@ -28,9 +28,10 @@
 #include "UPnP.h"
 #include "UPnP/WebClient.h"
 #include "UPnP/Headers.h"
+#include "UPnP/Configuration.h"
 
-#undef	UPNP_DEBUG
-// #define	UPNP_DEBUG Serial
+// #undef	UPNP_DEBUG
+#define	UPNP_DEBUG Serial
 
 static const char *_description_xml = "/description.xml";
 
@@ -305,7 +306,7 @@ void UPnPService::ControlHandler() {
 
 extern void SendSCPD();
 
-void UPnPService::begin() {
+void UPnPService::begin(Configuration *cfg) {
   HTTP.on(_description_xml, HTTP_GET, SendDescription);
 
 #ifdef UPNP_DEBUG
@@ -344,6 +345,12 @@ void UPnPService::begin() {
   free(url);
 
   srv = this;
+
+  // Configuration
+  config = cfg;
+  if (config != NULL) {
+    ReadConfiguration(config->GetName(), config);
+  }
 }
 
 void UPnPService::SendNotify(const char *varName) {
@@ -446,6 +453,10 @@ UPnPSubscriber *UPnPService::Subscribe() {
   ns->setUrl(upnp_headers[UPNP_METHOD_CALLBACK]);
   ns->setStateVarList(upnp_headers[UPNP_METHOD_STATEVAR]);
   ns->setTimeout(upnp_headers[UPNP_METHOD_TIMEOUT]);
+
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("Subscribe URL %s\n", upnp_headers[UPNP_METHOD_CALLBACK]);
+#endif
 
   // Provide feedback
   char *asv = ns->getAcceptedStateVar();

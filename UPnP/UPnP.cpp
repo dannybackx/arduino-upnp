@@ -37,6 +37,7 @@
 #include "UPnP/Headers.h"
 
 extern WebServer HTTP;
+static Configuration *config;
 
 // Choose one
 #undef	DEBUG_UPNP
@@ -57,6 +58,17 @@ UPnPClass::~UPnPClass() {
 void UPnPClass::begin(WebServer *http, UPnPDevice *device) {
   this->device = device;
   this->http = http;
+
+#if 0
+  // FIXME this should be called once per class, not per instance
+  config = new Configuration("UPnP",
+    new ConfigurationItem( "a", 0 ),
+    new ConfigurationItem( "b", 1 ),
+    new ConfigurationItem( "c", "none" )
+);
+
+  ReadConfiguration("UPnP", config);
+#endif
 }
 
 const char *_http_header =

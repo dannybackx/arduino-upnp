@@ -30,8 +30,8 @@
 #include "UPnP/WebClient.h"
 #include "UPnP/Headers.h"
 
-#undef	UPNP_DEBUG
-// #define	UPNP_DEBUG Serial
+// #undef	UPNP_DEBUG
+#define	UPNP_DEBUG Serial
 
 static const char *_notify_header_template =
   "NOTIFY %s HTTP/1.0\r\n"
@@ -142,13 +142,22 @@ void UPnPSubscriber::setUrl(char *url) {
  * Then try to subscribe to info on them
  */
 void UPnPSubscriber::setStateVarList(char *stateVarList) {
+  if (stateVarList == NULL)
+    return;
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("UPnPSubscriber::setStateVarList(%s)\n", stateVarList);
+  delay(1000);
+#endif
   char *ptr, *begin, **list;
   bool inword = false;
   int n = 0;
 
   // First pass : count words
   for (ptr = stateVarList; *ptr; ptr++) {
-    // UPNP_DEBUG.printf("sSVL(%s) %d %s\n", ptr, n, inword ? "inword" : "out");
+#ifdef UPNP_DEBUG
+    UPNP_DEBUG.printf("sSVL(%s) %d %s\n", ptr, n, inword ? "inword" : "out");
+  delay(1000);
+#endif
     if (inword && !isalnum(*ptr)) {
       inword = false;
     } else if (inword && isalnum(*ptr)) {

@@ -29,6 +29,7 @@
 #include "UPnP/WebClient.h"
 #include "UPnP/UPnPSubscriber.h"
 #include "UPnP/StateVariable.h"
+#include "UPnP/Configuration.h"
 
 #define	N_ACTIONS			4
 #define	N_VARIABLES			4
@@ -63,7 +64,7 @@ class UPnPService {
     char *getActionListXML();
     char *getStateVariableListXML();
     char *getServiceXML();
-    void begin();
+    void begin(Configuration *config);
     Action *findAction(const char *);
     StateVariable *lookupVariable(char *name);
 
@@ -93,12 +94,14 @@ class UPnPService {
     void SendNotify(const char *varName);
 
     void SendSCPD(WiFiClient client);
+    void ReadConfiguration(const char *name, Configuration *config);
 
   private:
     UPnPSubscriber **subscriber;
     int nsubscribers, maxsubscribers;
 
   protected:
+    Configuration *config;
 
 };
 
