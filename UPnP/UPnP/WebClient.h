@@ -42,25 +42,8 @@ public:
   void setMethod(enum HTTPMethod);
 
 private:
-  char *path;
+  char *host, *path;
+  int port;
   WiFiClient *wc;
-
-#if 0
-  WiFiServer  _server;
-
-  WiFiClient  _currentClient;
-  HTTPMethod  _currentMethod;
-  String      _currentUri;
-
-  size_t           _currentArgCount;
-  RequestArgument* _currentArgs;
-  HTTPUpload       _currentUpload;
-
-  size_t           _contentLength;
-  String           _responseHeaders;
-
-  String           _hostHeader;
-
-#endif
 };
 #endif // _INCLUDE_WEB_CLIENT_H_

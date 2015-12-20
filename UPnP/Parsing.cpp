@@ -73,39 +73,45 @@ bool WebServer::_parseRequest(WiFiClient& client) {
   //DEBUG_OUTPUT.printf("search: %s\n", searchStr);
 #endif
 
-  // below is needed only when POST type request
+  String headerName;
+  String headerValue;
+ 
+  // Read headers
+  while (1) {
+    req = client.readStringUntil('\r');
+    client.readStringUntil('\n');
+    if (req == "")
+      break;	// no more headers
+    int headerDiv = req.indexOf(':');
+    if (headerDiv == -1)
+      break;
+
+    headerName = req.substring(0, headerDiv);
+    headerValue = req.substring(headerDiv + 2);
+
+    for (int i=UPNP_METHOD_NONE; i<UPNP_END_METHODS; i++)
+      if (headerName.equalsIgnoreCase(upnp_header_strings[i])) {
+        int len = headerValue.length();
+        upnp_headers[i] = (char *)malloc(len+1);
+        strcpy(upnp_headers[i], headerValue.c_str());
+#ifdef DEBUG_OUTPUT
+        DEBUG_OUTPUT.printf("HEADER [%s] {%s}\n", upnp_header_strings[i], upnp_headers[i]);
+#endif
+        break;
+      }
+
+    if (headerName == "Host") {
+      _hostHeader = headerValue;
+    }
+  }
+
+  // We're past the headers, read data
+  // Treat POST type request
   if (method == HTTP_POST || method == HTTP_PUT || method == HTTP_PATCH || method == HTTP_DELETE) {
     String boundaryStr;
     String headerName;
     String headerValue;
     uint32_t contentLength = 0;
-
-    // parse headers
-    while(1) {
-      req = client.readStringUntil('\r');
-      client.readStringUntil('\n');
-      if (req == "")
-        break;	// no more headers
-      int headerDiv = req.indexOf(':');
-      if (headerDiv == -1)
-        break;
-
-      headerName = req.substring(0, headerDiv);
-      headerValue = req.substring(headerDiv + 2);
-	  
-#ifdef DEBUG_OUTPUT
-      DEBUG_OUTPUT.print("headerName: ");
-      DEBUG_OUTPUT.println(headerName);
-      DEBUG_OUTPUT.print("headerValue: ");
-      DEBUG_OUTPUT.println(headerValue);
-#endif
-	  
-      if (headerName == "Content-Length"){
-        contentLength = headerValue.toInt();
-      } else if (headerName == "Host"){
-        _hostHeader = headerValue;
-      }
-    }
 
     if (searchStr != "")
       searchStr += '&';
@@ -126,80 +132,12 @@ bool WebServer::_parseRequest(WiFiClient& client) {
     DEBUG_OUTPUT.println(plainBuf);
 #endif
 
-#if 1
     searchStr += plainBuf;
-#else
-    if (plainBuf[0] == '{' || plainBuf[0] == '[' || strstr(plainBuf, "=") == NULL) {
-      // plain post json or other data
-      searchStr += "plain=";
-      searchStr += plainBuf;
-    } else {
-      searchStr += plainBuf;
-    }
-#endif
     /* End HTTP_POST, HTTP_PUT, HTTP_PATCH, HTTP_DELETE */
   } else if (method == HTTP_SUBSCRIBE) {
-    String headerName;
-    String headerValue;
- 
-    while(1) {
-      req = client.readStringUntil('\r');
-      client.readStringUntil('\n');
-      if (req == "")
-        break;	// no more headers
-      int headerDiv = req.indexOf(':');
-      if (headerDiv == -1)
-        break;
-
-      headerName = req.substring(0, headerDiv);
-      headerValue = req.substring(headerDiv + 2);
-
-      for (int i=UPNP_METHOD_NONE; i<UPNP_END_METHODS; i++)
-        if (headerName.equalsIgnoreCase(upnp_header_strings[i])) {
-	  int len = headerValue.length();
-	  upnp_headers[i] = (char *)malloc(len+1);
-	  strcpy(upnp_headers[i], headerValue.c_str());
-#ifdef DEBUG_OUTPUT
-	  DEBUG_OUTPUT.printf("HEADER [%s] {%s}\n", upnp_header_strings[i], upnp_headers[i]);
-#endif
-	  break;
-	}
-
-      if (headerName == "Host"){
-        _hostHeader = headerValue;
-      }
-    }
     /* HTTP_SUBSCRIBE */
   } else {
     /* HTTP_GET, HTTP_OPTIONS */
-    String headerName;
-    String headerValue;
-
-    // Parse headers
-    while(1) {
-      req = client.readStringUntil('\r');
-      client.readStringUntil('\n');
-      if (req == "")
-        break;	// no more headers
-      int headerDiv = req.indexOf(':');
-      if (headerDiv == -1)
-        break;
-
-      headerName = req.substring(0, headerDiv);
-      headerValue = req.substring(headerDiv + 2);
-	  
-#ifdef DEBUG_OUTPUT
-      DEBUG_OUTPUT.println("==========");
-      DEBUG_OUTPUT.print("headerName: ");
-      DEBUG_OUTPUT.println(headerName);
-      DEBUG_OUTPUT.print("headerValue: ");
-      DEBUG_OUTPUT.println(headerValue);
-#endif
-	  
-	  if (headerName == "Host"){
-        _hostHeader = headerValue;
-      }
-    }
   }
 
   client.flush();

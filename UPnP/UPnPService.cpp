@@ -30,8 +30,8 @@
 #include "UPnP/Headers.h"
 #include "UPnP/Configuration.h"
 
-// #undef	UPNP_DEBUG
-#define	UPNP_DEBUG Serial
+#undef	UPNP_DEBUG
+// #define	UPNP_DEBUG Serial
 
 static const char *_description_xml = "/description.xml";
 
@@ -402,14 +402,15 @@ Query 192.168.1.144 ...
 acer: {304} 
  */
 /*
- *
+ * This is configured by HTTP.on() in UPnPService::begin(), but then
+ * treated in UPnPClass to determine which UPnPService got called
+ * (by looking up the URL). Then the method below is called on the
+ * right UPnPService.
  */
 void UPnPService::EventHandler() {
 #ifdef UPNP_DEBUG
   UPNP_DEBUG.println("UPnPService::EventHandler()");
 #endif
-
-  // Figure out which service
 
   // Ok now we're good to go, the variable "srv" points right
   if (HTTP.method() == HTTP_SUBSCRIBE) {

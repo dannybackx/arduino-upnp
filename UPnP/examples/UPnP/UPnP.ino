@@ -42,9 +42,17 @@ void setup() {
   Serial.print("Starting WiFi... ");
 
   WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  if(WiFi.waitForConnectResult() == WL_CONNECTED){
-    
+
+  int wifi_tries = 3;
+  int wcr;
+  while (wifi_tries-- >= 0) {
+    WiFi.begin(ssid, password);
+    wcr = WiFi.waitForConnectResult();
+    if (wcr == WL_CONNECTED)
+      break;
+  }
+  
+  if (wcr == WL_CONNECTED) {  
     IPAddress ip = WiFi.localIP();
     String ips = ip.toString();
     Serial.print("MAC "); Serial.print(WiFi.macAddress());
@@ -113,8 +121,8 @@ void setup() {
 #ifdef ENABLE_LED_SERVICE
     LEDService led_srv = LEDService();
     led_srv.begin();
-    led_srv.setPeriod(5, 495);
-    led_srv.SetState(LED_STATE_BLINK);
+//    led_srv.setPeriod(5, 495);
+//    led_srv.SetState(LED_STATE_BLINK);
     UPnP.addService(&led_srv);
 #endif
 #ifdef ENABLE_DHT_SERVICE

@@ -78,7 +78,7 @@ void UPnPSubscriber::SendNotify(StateVariable &sv) {
  */
 void UPnPSubscriber::SendNotify(const char *varName) {
 #ifdef UPNP_DEBUG
-  UPNP_DEBUG.println("SendNotify");
+  UPNP_DEBUG.printf("SendNotify(%s)\n", varName);
 #endif
   if (varName == NULL) {
 #ifdef UPNP_DEBUG
@@ -117,6 +117,7 @@ UPnPSubscriber::UPnPSubscriber(UPnPService *s) {
   service = s;
 
   wc = NULL;
+  url = NULL;
   seq = 1;
   sid = (char *)malloc(16);
   sprintf(sid, "uuid:%08x", this);
@@ -134,7 +135,27 @@ UPnPSubscriber::~UPnPSubscriber() {
 }
 
 void UPnPSubscriber::setUrl(char *url) {
-  this->url = url;	// FIXME make a copy ?
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("UPnPSubscriber::setUrl(%s)\n", url);
+#endif
+  if (this->url)
+    free((void *)this->url);
+  this->url = NULL;
+  if (url == NULL)
+    return;
+
+  // Copy the string, without surrounding < > if any
+  int len = strlen(url);
+  if (url[0] == '<' && url[len-1] == '>') {
+    char *u = (char *)malloc(len-1);
+    strncpy(u, url+1, len-2);
+    u[len-2] = 0;
+    this->url = u;
+  } else {
+    char *u = (char *)malloc(len+1);
+    strcpy(u, url);
+    this->url = u;
+  }
 }
 
 /*
@@ -154,7 +175,7 @@ void UPnPSubscriber::setStateVarList(char *stateVarList) {
 
   // First pass : count words
   for (ptr = stateVarList; *ptr; ptr++) {
-#ifdef UPNP_DEBUG
+#ifdef UPNP_DEBUGx
     UPNP_DEBUG.printf("sSVL(%s) %d %s\n", ptr, n, inword ? "inword" : "out");
   delay(1000);
 #endif

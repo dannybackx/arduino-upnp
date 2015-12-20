@@ -39,7 +39,7 @@ static void GetVersion();
 //   avoid GPIO6 (D0) : it flashes the LED in the center of the ESP-12E board, but crashes the board when used as output
 //   avoid GPIO9 (SD2) : appears to be linked to "5V POWER"
 //const int sensor = 5;   // ESP8266-12E line D1 (GPIO5)
-const int sensor = 4;   // ESP8266-12E line D2 (GPIO4)
+//const int sensor = 4;   // ESP8266-12E line D2 (GPIO4)
 const int led = 0;      // ESP8266-12E D3 (GPIO0), beware of using this : enter flash mode after reboot if LOW
 // ESP8266-12E line D6 (GPIO12)
 // ESP8266-12E line D5 (GPIO14)
@@ -120,10 +120,20 @@ MotionSensorService::~MotionSensorService() {
 #endif  
 }
 
+static Configuration *config;
+int sensor;
+
 void MotionSensorService::begin() {
-  UPnPService::begin();
+  config = new Configuration("MotionSensor",
+    new ConfigurationItem("pin", 4),
+    new ConfigurationItem("name", ""));
+  UPnPService::begin(config);
+
+  //sensor = 4;
+  sensor = config->GetValue("pin");
+
 #ifdef DEBUG
-  DEBUG.println("MotionSensorService::begin");
+  DEBUG.printf("MotionSensorService::begin (sensor pin %d)\n", sensor);
 #endif
   pinMode(sensor, INPUT);
   oldstate = newstate = digitalRead(sensor);
@@ -141,7 +151,7 @@ void MotionSensorService::poll() {
     digitalWrite(led, newstate);
 #endif
     sprintf(state, "%d", newstate);
-    Serial.printf("State changed to %d (MotionSensorService %p)\n", newstate, this);
+//    Serial.printf("State changed to %d (MotionSensorService %p)\n", newstate, this);
 
     // FIXME trigger something from here
     SendNotify("State");

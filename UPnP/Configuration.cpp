@@ -133,7 +133,11 @@ enum ValueType ConfigurationItem::GetType() {
 }
 
 bool Configuration::configured(const char *name) {
+  if (name == NULL)
+    return false;
   ConfigurationItem *i = GetItem(name);
+  if (i == NULL)
+    return false;
   switch (i->GetType()) {
 #if 0
   case TYPE_NONE:
