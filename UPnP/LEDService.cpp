@@ -139,11 +139,19 @@ void LEDService::begin() {
   config = new Configuration("LED",
     new ConfigurationItem("pin", 0),
     new ConfigurationItem("name", NULL),
-    new ConfigurationItem("passive", 45),
+    new ConfigurationItem("passive", 495),
     new ConfigurationItem("active", 5),
     NULL);
   UPnPService::begin(config);
   led = config->GetValue("pin");
+
+#ifdef DEBUG
+  DEBUG.printf("LEDService::begin (pin %d)\n", led);
+#endif
+
+  pinMode(led, OUTPUT);
+
+  state = LED_STATE_OFF;
 
   if (config->configured("active") && config->configured("passive")) {
     setPeriod(config->GetValue("active"), config->GetValue("passive"));
@@ -154,14 +162,6 @@ void LEDService::begin() {
       config->GetValue("passive"));
 #endif
   }
-
-#ifdef DEBUG
-  DEBUG.printf("LEDService::begin (pin %d)\n", led);
-#endif
-
-  pinMode(led, OUTPUT);
-
-  state = LED_STATE_OFF;
 }
 
 enum LEDState LEDService::GetState() {

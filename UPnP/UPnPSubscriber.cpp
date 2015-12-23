@@ -30,8 +30,8 @@
 #include "UPnP/WebClient.h"
 #include "UPnP/Headers.h"
 
-// #undef	UPNP_DEBUG
-#define	UPNP_DEBUG Serial
+#undef	UPNP_DEBUG
+// #define	UPNP_DEBUG Serial
 
 static const char *_notify_header_template =
   "NOTIFY %s HTTP/1.0\r\n"
@@ -78,7 +78,7 @@ void UPnPSubscriber::SendNotify(StateVariable &sv) {
  */
 void UPnPSubscriber::SendNotify(const char *varName) {
 #ifdef UPNP_DEBUG
-  UPNP_DEBUG.printf("SendNotify(%s)\n", varName);
+  UPNP_DEBUG.printf("SendNotify(%s, %s)\n", url, varName);
 #endif
   if (varName == NULL) {
 #ifdef UPNP_DEBUG
@@ -91,8 +91,8 @@ void UPnPSubscriber::SendNotify(const char *varName) {
 
   char *header = (char *)malloc(strlen(_notify_header_template) + 128);
   sprintf(header, _notify_header_template,
-    "delivery/path",		// FIXME
-    "host", 45678,		// FIXME
+    path,	// url,		// FIXME
+    host, port,		// FIXME
     sid,			// Use the memory address of this instance as UUID, see ctor
     seq++);
 
@@ -101,10 +101,19 @@ void UPnPSubscriber::SendNotify(const char *varName) {
 
   if (wc == NULL) {
     wc = new WebClient();
-    wc->connect(url);
+    //wc->connect(url);
+    wc->connect(host, port, path);
   }
-  if (wc)
+  if (wc) {
+#ifdef UPNP_DEBUGx
+    UPNP_DEBUG.printf("SendNotify {%s,%s}\n", UPnPClass::mimeTypeXML, msg);
+#endif
     wc->send(UPnPClass::mimeTypeXML, msg);
+  } else {
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.println("SendNotify WebClient NULL");
+#endif
+  }
   free(msg);
   free(body);
   free(header);
@@ -156,6 +165,41 @@ void UPnPSubscriber::setUrl(char *url) {
     strcpy(u, url);
     this->url = u;
   }
+
+  // Insist on having a correct URL, and HTTP as protocol
+  if (strncmp(this->url, "http://", 7) != 0)
+    return;
+
+  // Look for the parts of the URL
+  host = this->url+7;
+  path = NULL;
+  const char *p, *port = NULL;
+
+  for (p = host; *p; p++)
+    if (*p == ':' && port == NULL) {
+      port = p+1;
+    } else if (*p == '/' && path == NULL) {
+      path = p;
+    }
+
+  // Save and copy the parts of the URL
+  if (port) {	// Port points just after the colon
+    len = (int)(port-host);
+    char *u = (char *)malloc(len);
+    strncpy(u, host, len-1);
+    u[len-1] = 0;
+    this->host = u;
+  } else {	// Path points to the slash
+    len = (int)(path-host);
+    char *u = (char *)malloc(len+1);
+    strncpy(u, host, len);
+    u[len] = 0;
+    this->host = u;
+  }
+  
+  this->port = 80;
+  if (port)
+    this->port = atoi(port);
 }
 
 /*
@@ -167,7 +211,6 @@ void UPnPSubscriber::setStateVarList(char *stateVarList) {
     return;
 #ifdef UPNP_DEBUG
   UPNP_DEBUG.printf("UPnPSubscriber::setStateVarList(%s)\n", stateVarList);
-  delay(1000);
 #endif
   char *ptr, *begin, **list;
   bool inword = false;
@@ -177,7 +220,6 @@ void UPnPSubscriber::setStateVarList(char *stateVarList) {
   for (ptr = stateVarList; *ptr; ptr++) {
 #ifdef UPNP_DEBUGx
     UPNP_DEBUG.printf("sSVL(%s) %d %s\n", ptr, n, inword ? "inword" : "out");
-  delay(1000);
 #endif
     if (inword && !isalnum(*ptr)) {
       inword = false;
@@ -194,7 +236,6 @@ void UPnPSubscriber::setStateVarList(char *stateVarList) {
   // Allocate
 #ifdef UPNP_DEBUG
   UPNP_DEBUG.printf("UPnPSubscriber::setStateVarList(%s) : %d words\n", stateVarList, n);
-  delay(1000);
 #endif
   list = (char **)malloc(sizeof(char *) * n);
 
@@ -243,7 +284,6 @@ void UPnPSubscriber::setStateVar(char *name) {
 
 #ifdef UPNP_DEBUG
   UPNP_DEBUG.printf("Subscribe : StateVar(%s) %d\n", name, nvariables);
-  delay(1000);
 #endif
 }
 

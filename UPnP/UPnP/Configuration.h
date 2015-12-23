@@ -46,6 +46,8 @@ public:
   int GetValue();
   const char *GetStringValue();
   enum ValueType GetType();
+  void SetValue(int v);
+  void SetValue(char *v);
 };
 
 class Configuration {

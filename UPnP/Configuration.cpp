@@ -26,14 +26,101 @@
 #include "UPnP.h"
 #include "UPnP/Configuration.h"
 #include <stdarg.h>
+#include <FS.h>
 
-#undef	DEBUG_PRINT
-// #define	DEBUG_PRINT Serial
+// #undef	DEBUG_PRINT
+#define	DEBUG_PRINT Serial
+
+#define LINE_LEN	80
+
+static const char *filename = "/config.txt";
+static const char *filemode = "r";
+
+int UPnPService::ReadLine(File f) {
+  if (line == NULL)
+    line = (char *)malloc(LINE_LEN+1);
+
+  int len = f.readBytesUntil('\n', line, LINE_LEN);
+  if (len >= 0 && len <= LINE_LEN)
+    line[len] = 0;
+
+  return len;
+}
 
 void UPnPService::ReadConfiguration(const char *name, Configuration *config) {
 #ifdef DEBUG_PRINT
   DEBUG_PRINT.printf("ReadConfiguration(%s)\n", name);
 #endif
+
+  // Open file
+  File f = SPIFFS.open(filename, filemode);
+
+  int len;
+  do {
+    // Read line
+    len = ReadLine(f);
+#ifdef DEBUG_PRINTx
+    DEBUG_PRINT.printf("Read line %d {%s}\n", len, line);
+#endif
+
+    // Check it against every configuration item
+    char *t1 = line, *t2 = NULL, *t3 = NULL;
+    int i;
+
+    // Scan the line for a colon, separate the fields on it.
+    for (i=0; i<len && line[i]; i++)
+      if (line[i] == ':') {
+        line[i] = 0;
+	t2 = line+i+1;
+	break;
+      }
+
+    // Is the configuration line about this device ?
+    if (strcmp(t1, name) != 0)
+      break;
+
+    // Continue scanning for the next colon
+    for (i++; i<len && line[i]; i++)
+      if (line[i] == ':') {
+        line[i] = 0;
+	t3 = line+i+1;
+	break;
+      }
+
+    // Configuration line matching a config item ?
+    ConfigurationItem *item = config->GetItem(t2);
+    if (item) {
+#ifdef DEBUG_PRINT
+        DEBUG_PRINT.printf("Configuration match for %s %s\n", t1, t2);
+#endif
+	switch (item->GetType()) {
+	  case TYPE_NONE:
+	    break;
+	  case TYPE_DEFAULT_INT:
+	  case TYPE_INT:
+	    item->SetValue(atoi(t3));
+	    break;
+	  case TYPE_DEFAULT_STRING:
+	  case TYPE_STRING:
+	    item->SetValue(t3);
+	    /*
+	    char *s = (char *)malloc(strlen(t3) + 1);
+	    strcpy(s, t3);
+	    if (item->svalue)
+	      free(item->svalue);
+	    item->svalue = s;
+	    /* */
+	    break;
+	}
+    }
+  } while (len > 0);
+
+  // Close file
+  f.close();
+
+  // Return
+  free(line);
+  line = NULL;
 }
 
 Configuration::Configuration(const char *name, ConfigurationItem *item ...) {
@@ -83,6 +170,9 @@ ConfigurationItem::ConfigurationItem(const char *name, const char *value) {
 }
 
 ConfigurationItem *Configuration::GetItem(const char *itemname) {
+#ifdef DEBUG_PRINTx
+  DEBUG_PRINT.printf("ConfigurationItem::GetItem(%s)\n", itemname);
+#endif
   for (int i=0; i<nitems; i++) {
     if (strcasecmp(itemname, items[i]->GetName()) == 0) {
       return items[i];
@@ -101,15 +191,15 @@ const char *ConfigurationItem::GetName() {
 
 int Configuration::GetValue(const char *name) {
   if (name == NULL) {
-#ifdef DEBUG_PRINT
-    DEBUG_PRINT.printf("ConfigurationItem::GetValue(%s)\n", name);
-#endif
     return NULL;
   }
+#ifdef DEBUG_PRINTx
+    DEBUG_PRINT.printf("ConfigurationItem::GetValue(%s)\n", name);
+#endif
   ConfigurationItem *ci = GetItem(name);
   if (ci == NULL) {
     return NULL;
-#ifdef DEBUG_PRINT
+#ifdef DEBUG_PRINTx
     DEBUG_PRINT.printf("ConfigurationItem::GetValue(%s) ci == NULL\n", name);
 #endif
   }
@@ -118,6 +208,18 @@ int Configuration::GetValue(const char *name) {
 
 int ConfigurationItem::GetValue() {
   return ivalue;
+}
+
+void ConfigurationItem::SetValue(char *v) {
+  if (svalue)
+    free((void *)svalue);
+  char *s = (char *)malloc(strlen(v) + 1);
+  strcpy(s, v);
+  svalue = s;
+}
+
+void ConfigurationItem::SetValue(int v) {
+  ivalue = v;
 }
 
 const char *Configuration::GetStringValue(const char *name) {

@@ -34,15 +34,16 @@ public:
   void begin();
 
   bool connect(const char *url);
-  bool connect(char *host, char *path);
-  bool connect(char *host, uint16_t port, char *path);
-  bool connect(IPAddress ip, uint16_t port, char *path);
+  bool connect(const char *host, const char *path);
+  bool connect(const char *host, uint16_t port, const char *path);
+  bool connect(IPAddress ip, uint16_t port);
   char *send(const char *mime, const char *msg);
   char *send(char *msg);
   void setMethod(enum HTTPMethod);
 
 private:
-  char *host, *path;
+  char *host;
+  const char *path;
   int port;
   WiFiClient *wc;
 };

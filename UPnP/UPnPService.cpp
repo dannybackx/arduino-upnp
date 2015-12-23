@@ -74,6 +74,8 @@ UPnPService::UPnPService(const char *name, const char *serviceType, const char *
   maxvariables = nvariables = 0;
   variables = NULL;
 
+  line = NULL;
+
   this->serviceName = name;
   this->serviceType = serviceType;
   this->serviceId = serviceId;
@@ -89,6 +91,9 @@ UPnPService::~UPnPService() {
     if (variables[i])
       free(variables[i]);
   free(variables);
+
+  if (line)
+    free(line);
 
   delete subscriber;
 }
@@ -125,7 +130,6 @@ void UPnPService::addAction(const char *name, ActionFunction handler, const char
 void UPnPService::addStateVariable(const char *name, const char *datatype, boolean sendEvents) {
 #ifdef UPNP_DEBUGx
   UPNP_DEBUG.printf("UPnPService UPnPService::addStateVariable %s\n", name);
-  delay(1000);
 #endif
   if (nvariables == maxvariables) {
     maxvariables += N_VARIABLES;
@@ -358,7 +362,7 @@ void UPnPService::SendNotify(const char *varName) {
   UPNP_DEBUG.printf("UPnPService::SendNotify(%s), %d\n", varName, nsubscribers); 
 #endif
   for (int i=0; i < nsubscribers; i++) {
-    UPnPSubscriber *s = subscriber[0];
+    UPnPSubscriber *s = subscriber[i];
     s->SendNotify(varName);
   }
 }

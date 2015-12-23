@@ -89,19 +89,20 @@ bool WebClient::connect(const char *url) {
   return connect(this->host, this->port, this->path);
 }
 
-bool WebClient::connect(char *host, char *path) {
+bool WebClient::connect(const char *host, const char *path) {
   connect(host, 80, path);
 }
 
-bool WebClient::connect(char *host, uint16_t port, char *path) {
+bool WebClient::connect(const char *host, uint16_t port, const char *path) {
   IPAddress ip;
   if (WiFi.hostByName(host, ip) <= 0)
     return false;
 
-  return connect(ip, port, path);
+  this->path = path;
+  return connect(ip, port);
 }
 
-bool WebClient::connect(IPAddress ip, uint16_t port, char *path) {
+bool WebClient::connect(IPAddress ip, uint16_t port) {
   int success = 0;
   if (wc == NULL)
     wc = new WiFiClient();
@@ -111,7 +112,6 @@ bool WebClient::connect(IPAddress ip, uint16_t port, char *path) {
   DEBUG_OUTPUT.printf("wc->connect => %d, wc %p\n", success, wc);
 #endif
 
-  this->path = path;
   return success;
 }
 

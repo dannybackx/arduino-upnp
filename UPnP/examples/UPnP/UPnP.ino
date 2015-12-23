@@ -72,14 +72,15 @@ void setup() {
     Serial.printf("SPIFFS total %d used %d maxpathlength %d\n",
       fs_info.totalBytes, fs_info.usedBytes, fs_info.maxPathLength);
 
-    SPIFFS.remove("config.xml");
+    SPIFFS.remove("/config.xml");
     // Create a file
-    File f = SPIFFS.open("/config.xml", "r");
+    File f = SPIFFS.open("/config.txt", "r");
     if (f) {
-      Serial.printf("SPIFFS : /config.xml exists, content %d bytes\n", f.size());
+      Serial.printf("SPIFFS : /config.txt exists, content %d bytes\n", f.size());
     } else {
-      f = SPIFFS.open("/config.xml", "w");
-      f.printf("<config>hello there</config>\n");
+      f = SPIFFS.open("/config.txt", "w");
+      f.printf("LED:active:50\n");
+      f.printf("LED:passive:450\n");
       f.close();
     }
 #endif
@@ -121,8 +122,6 @@ void setup() {
 #ifdef ENABLE_LED_SERVICE
     LEDService led_srv = LEDService();
     led_srv.begin();
-//    led_srv.setPeriod(5, 495);
-//    led_srv.SetState(LED_STATE_BLINK);
     UPnP.addService(&led_srv);
 #endif
 #ifdef ENABLE_DHT_SERVICE

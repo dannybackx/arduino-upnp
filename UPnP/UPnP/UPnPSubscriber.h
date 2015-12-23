@@ -31,6 +31,9 @@ class UPnPService;
 class UPnPSubscriber {
 public:
   const char *url;
+  const char *host, *path;
+  int port;
+
   int timeout;
   StateVariable **variables;	// List of variables watched
   int nvariables;

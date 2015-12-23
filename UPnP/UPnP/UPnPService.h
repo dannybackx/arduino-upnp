@@ -30,6 +30,7 @@
 #include "UPnP/UPnPSubscriber.h"
 #include "UPnP/StateVariable.h"
 #include "UPnP/Configuration.h"
+#include <FS.h>
 
 #define	N_ACTIONS			4
 #define	N_VARIABLES			4
@@ -99,6 +100,8 @@ class UPnPService {
   private:
     UPnPSubscriber **subscriber;
     int nsubscribers, maxsubscribers;
+    int ReadLine(File f);
+    char *line;
 
   protected:
     Configuration *config;
