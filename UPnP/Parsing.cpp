@@ -28,8 +28,8 @@
 #include "UPnP/WebServer.h"
 #include "UPnP/Headers.h"
 
-#undef DEBUG_OUTPUT
-// #define DEBUG_OUTPUT Serial
+// #undef DEBUG_OUTPUT
+#define DEBUG_OUTPUT Serial
 
 extern char *upnp_headers[];
 
@@ -108,6 +108,7 @@ bool WebServer::_parseRequest(WiFiClient& client) {
   // We're past the headers, read data
   // Treat POST type request
   if (method == HTTP_POST || method == HTTP_PUT || method == HTTP_PATCH || method == HTTP_DELETE) {
+#if 0
     String boundaryStr;
     String headerName;
     String headerValue;
@@ -133,6 +134,7 @@ bool WebServer::_parseRequest(WiFiClient& client) {
 #endif
 
     searchStr += plainBuf;
+#endif
     /* End HTTP_POST, HTTP_PUT, HTTP_PATCH, HTTP_DELETE */
   } else if (method == HTTP_SUBSCRIBE) {
     /* HTTP_SUBSCRIBE */

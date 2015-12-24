@@ -72,7 +72,10 @@ void setup() {
     Serial.printf("SPIFFS total %d used %d maxpathlength %d\n",
       fs_info.totalBytes, fs_info.usedBytes, fs_info.maxPathLength);
 
+//    SPIFFS.format();
     SPIFFS.remove("/config.xml");
+    SPIFFS.remove("/t2.c");
+    SPIFFS.remove("/t.c");
     // Create a file
     File f = SPIFFS.open("/config.txt", "r");
     if (f) {

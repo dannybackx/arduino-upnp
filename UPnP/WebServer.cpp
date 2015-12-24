@@ -41,8 +41,8 @@
 /*
  * Select only one of these lines :
  */
-#undef DEBUG_OUTPUT
-// #define DEBUG_OUTPUT Serial
+// #undef DEBUG_OUTPUT
+#define DEBUG_OUTPUT Serial
 
 WebServer::WebServer(int port)
 	: _server(port)
@@ -315,42 +315,79 @@ void WebServer::onNotFound(THandlerFunction fn) {
 }
 
 void WebServer::_handleRequest() {
+  bool handled = false;
+  int cl = -1;		// Only support HTTP-1.1 where Content-Length is specified
 #ifdef DEBUG_OUTPUT
   DEBUG_OUTPUT.print("handleRequest(");
   DEBUG_OUTPUT.print(uri());
   DEBUG_OUTPUT.println(")");
 #endif
 
+  // Check for specific handlers, these always take precedence
   WebRequestHandler* handler;
   for (handler = _firstHandler; handler; handler = handler->next) {
-    if (handler->handle(*this, _currentMethod, _currentUri))
+    if (handler->handle(*this, _currentMethod, _currentUri)) {
+      handled = true;
       break;
+    }
   }
 
+  const char *fn = uri().c_str();
+
   if (!handler) {
+    // If no specific handler was found, see if this is a file system request
+
 #ifdef ENABLE_SPIFFS
-    // Read from filesystem
-    const char *fn = uri().c_str();
-    if (SPIFFS.exists(fn)) {
-      File file = SPIFFS.open(fn, "r");
-      const char *contentType = "text/xml";
-      size_t sent = streamFile(file, getContentType(fn));
-      file.close();
-    } else
-#endif
-    {
-      // No handler, no file -> complain
+    if (upnp_headers[UPNP_METHOD_CONTENTLENGTH])
+      cl = atoi(upnp_headers[UPNP_METHOD_CONTENTLENGTH]);
+
+    if (_currentMethod == HTTP_PUT && cl >= 0) {
 #ifdef DEBUG_OUTPUT
-      DEBUG_OUTPUT.println("request handler not found");
+      DEBUG_OUTPUT.printf("Store file %s, length %d\n", fn, cl);
+#endif
+      File file = SPIFFS.open(fn, "w");
+      if (file) {
+        uint8_t *buffer = (uint8_t *)malloc(cl);
+        _currentClient.readBytes(buffer, cl);
+	file.write(buffer, cl);
+	file.close();
+#ifdef DEBUG_OUTPUT
+      DEBUG_OUTPUT.printf("Closing file, replying\n");
+#endif
+        send(200, "text/plain", String("Thanks, received : ") + _currentUri);
+        handled = true;
+      } else {
+        send(404, "text/plain", String("Could not write file : ") + _currentUri);
+        handled = true;
+      }
+    } else if (_currentMethod == HTTP_PUT && cl < 0) {
+        handled = true;
+        send(404, "text/plain", String("File upload supported only via HTTP 1.1"));
+    } else if (_currentMethod == HTTP_GET) {
+      // Read from filesystem
+      if (SPIFFS.exists(fn)) {
+        File file = SPIFFS.open(fn, "r");
+        const char *contentType = "text/xml";
+        size_t sent = streamFile(file, getContentType(fn));
+        file.close();
+	handled = true;
+      }
+    }
+  }
 #endif
 
-      if (_notFoundHandler) {
-        // Externally provided handler ?
-        _notFoundHandler();
-      } else {
-        // Simplistic builtin "not found" handler
-        send(404, "text/plain", String("Not found: ") + _currentUri);
-      }
+  // Provide "not handled" feedback
+  if (! handled) {
+#ifdef DEBUG_OUTPUT
+    DEBUG_OUTPUT.println("request handler not found");
+#endif
+
+    if (_notFoundHandler) {
+      // Externally provided handler ?
+      _notFoundHandler();
+    } else {
+      // Simplistic builtin "not found" handler
+      send(404, "text/plain", String("Not found: ") + _currentUri);
     }
   }
 
@@ -411,3 +448,8 @@ const char *WebServer::getContentType(const char *filename) {
 
   return "text/plain";
 }
+
+/*
+ * Receive files, sent via commands like :
+ *   curl -T config.txt 192.168.1.100:/config.txt
+ */

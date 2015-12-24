@@ -37,6 +37,7 @@ enum UPnPHeader {
 	UPNP_METHOD_SEQ,
 	UPNP_METHOD_STATEVAR,
 	UPNP_METHOD_TIMEOUT,
+	UPNP_METHOD_CONTENTLENGTH,
 
 	UPNP_END_METHODS
 	// Don't add after this
@@ -55,6 +56,7 @@ static const char *upnp_header_strings[] = {
 	"SEQ",
 	"STATEVAR",
 	"TIMEOUT",
+	"Content-Length",
 
 	NULL
 	// Don't add after this
