@@ -28,8 +28,8 @@
 #include <stdarg.h>
 #include <FS.h>
 
-// #undef	DEBUG_PRINT
-#define	DEBUG_PRINT Serial
+#undef	DEBUG_PRINT
+// #define	DEBUG_PRINT Serial
 
 #define LINE_LEN	80
 

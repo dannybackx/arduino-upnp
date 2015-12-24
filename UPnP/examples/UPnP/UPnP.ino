@@ -26,7 +26,7 @@ const char* password = MY_WIFI_PASSWORD;
 
 // const char *serviceType = "urn:danny-backx-info:service:sensor:1";
 // const char *serviceId = "urn:danny-backx-info:serviceId:sensor1";
-char *deviceURN = "urn:schemas-upnp-org:device:Basic:1";
+char *deviceURN = "urn:schemas-upnp-org:device:ESP8266:1";
 
 WebServer HTTP(80);
 UPnPDevice device;
@@ -73,9 +73,8 @@ void setup() {
       fs_info.totalBytes, fs_info.usedBytes, fs_info.maxPathLength);
 
 //    SPIFFS.format();
-    SPIFFS.remove("/config.xml");
-    SPIFFS.remove("/t2.c");
-    SPIFFS.remove("/t.c");
+//    SPIFFS.remove("/config.xml");
+    
     // Create a file
     File f = SPIFFS.open("/config.txt", "r");
     if (f) {
