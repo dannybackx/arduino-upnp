@@ -77,7 +77,7 @@ void UPnPService::ReadConfiguration(const char *name, Configuration *config) {
 
     // Is the configuration line about this device ?
     if (strcmp(t1, name) != 0)
-      break;
+      continue;
 
     // Continue scanning for the next colon
     for (i++; i<len && line[i]; i++)
@@ -90,26 +90,22 @@ void UPnPService::ReadConfiguration(const char *name, Configuration *config) {
     // Configuration line matching a config item ?
     ConfigurationItem *item = config->GetItem(t2);
     if (item) {
-#ifdef DEBUG_PRINT
-        DEBUG_PRINT.printf("Configuration match for %s %s\n", t1, t2);
-#endif
 	switch (item->GetType()) {
 	  case TYPE_NONE:
 	    break;
 	  case TYPE_DEFAULT_INT:
 	  case TYPE_INT:
 	    item->SetValue(atoi(t3));
+#ifdef DEBUG_PRINT
+        DEBUG_PRINT.printf("Configuration match for %s %s {%d}\n", t1, t2, atoi(t3));
+#endif
 	    break;
 	  case TYPE_DEFAULT_STRING:
 	  case TYPE_STRING:
 	    item->SetValue(t3);
-	    /*
-	    char *s = (char *)malloc(strlen(t3) + 1);
-	    strcpy(s, t3);
-	    if (item->svalue)
-	      free(item->svalue);
-	    item->svalue = s;
-	    /* */
+#ifdef DEBUG_PRINT
+        DEBUG_PRINT.printf("Configuration match for %s %s {%s}\n", t1, t2, t3);
+#endif
 	    break;
 	}
     }
@@ -158,6 +154,7 @@ ConfigurationItem::ConfigurationItem(const char *name, int value) {
   this->name = name;
   this->ivalue = value;
   this->type = TYPE_DEFAULT_INT;
+  this->svalue = NULL;
 }
 
 ConfigurationItem::ConfigurationItem(const char *name, const char *value) {
@@ -165,7 +162,9 @@ ConfigurationItem::ConfigurationItem(const char *name, const char *value) {
   DEBUG_PRINT.printf("ConfigurationItem::ConfigurationItem(%s)\n", name);
 #endif
   this->name = name;
-  this->svalue = value;
+  char *s = (char *)malloc(strlen(value)+1);
+  strcpy(s, value);
+  this->svalue = s;
   this->type = TYPE_DEFAULT_STRING;
 }
 
