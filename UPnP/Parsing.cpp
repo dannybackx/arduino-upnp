@@ -108,33 +108,6 @@ bool WebServer::_parseRequest(WiFiClient& client) {
   // We're past the headers, read data
   // Treat POST type request
   if (method == HTTP_POST || method == HTTP_PUT || method == HTTP_PATCH || method == HTTP_DELETE) {
-#if 0
-    String boundaryStr;
-    String headerName;
-    String headerValue;
-    uint32_t contentLength = 0;
-
-    if (searchStr != "")
-      searchStr += '&';
-
-    // some clients send headers first and data after (like we do), so give them a chance
-    int tries = 100;//100ms max wait
-    while (!client.available() && tries--) delay(1);
-    size_t plainLen = client.available();
-    char *plainBuf = (char*)malloc(plainLen+1);
-    if (this->plainBuf)
-      free(this->plainBuf);
-    this->plainBuf = plainBuf;	// FIXME Danny
-    this->plainLen = plainLen;	// FIXME Danny
-    client.readBytes(plainBuf, plainLen);
-    plainBuf[plainLen] = '\0';
-#ifdef DEBUG_OUTPUT
-    DEBUG_OUTPUT.print("Plain: ");
-    DEBUG_OUTPUT.println(plainBuf);
-#endif
-
-    searchStr += plainBuf;
-#endif
     /* End HTTP_POST, HTTP_PUT, HTTP_PATCH, HTTP_DELETE */
   } else if (method == HTTP_SUBSCRIBE) {
     /* HTTP_SUBSCRIBE */
@@ -142,7 +115,7 @@ bool WebServer::_parseRequest(WiFiClient& client) {
     /* HTTP_GET, HTTP_OPTIONS */
   }
 
-  client.flush();
+  // client.flush();
 
 #ifdef DEBUG_OUTPUT
   DEBUG_OUTPUT.print("Request: ");
@@ -152,4 +125,26 @@ bool WebServer::_parseRequest(WiFiClient& client) {
 #endif
 
   return true;
+}
+
+// Taken from WebServer::parseRequest()
+// Only few cases actually have, and read, data after the headers.
+void WebServer::ReadData(int &len, char *&buffer) {
+  // some clients send headers first and data after (like we do), so give them a chance
+  int tries = 100;	//100ms max wait
+  while (!_currentClient.available() && tries--)
+    delay(1);
+  size_t readLen = _currentClient.available();
+  len = (int) readLen;
+
+  char *buf = (char*)malloc(readLen+1);
+  buffer = buf;
+
+  _currentClient.readBytes(buffer, readLen);
+  buffer[readLen] = '\0';
+
+#ifdef DEBUG_OUTPUT
+  DEBUG_OUTPUT.print("ReadData plain: ");
+  DEBUG_OUTPUT.println(buffer);
+#endif
 }

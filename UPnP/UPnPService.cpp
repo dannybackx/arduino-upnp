@@ -254,9 +254,12 @@ void UPnPService::ControlHandler() {
   UPNP_DEBUGmem.print("GetFreeHeap1 : "); UPNP_DEBUG.println(ESP.getFreeHeap());
 #endif
 
-  const char *msg = HTTP.plainBuf;
+  char *msg;
+  int len;
+
+  HTTP.ReadData(len, msg);
 #ifdef UPNP_DEBUG
-  UPNP_DEBUG.printf("Message len %d : >>>> %s <<<<\n", HTTP.plainLen, msg);
+  UPNP_DEBUG.printf("UPnPService::ControlHandler Message len %d : >>>> %s <<<<\n", len, msg);
 #endif
   const char *body1 = strstr(msg, "<s:Body>");
   const char *body2 = strstr(msg, "</s:Body>");

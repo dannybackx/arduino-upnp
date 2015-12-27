@@ -2,7 +2,7 @@
  * This is a sample of a UPnP service that runs on a IoT device.
  * 
  * UPnP commands/queries can be used from an application or a script.
- * This service represents the DHT-11 temperature and humidity sensor.
+ * This service represents the BMP-180 Barometic pressure and temperature sensor.
  *  
  * Copyright (c) 2015 Danny Backx
  * 
@@ -25,33 +25,39 @@
  *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *   THE SOFTWARE.
  */
-#ifndef _INCLUDE_DHT_SENSOR_SERVICE_H_
-#define _INCLUDE_DHT_SENSOR_SERVICE_H_
+#ifndef _INCLUDE_BMP180_SENSOR_SERVICE_H_
+#define _INCLUDE_BMP180_SENSOR_SERVICE_H_
 
 #include "UPnP.h"
 #include "UPnP/UPnPService.h"
 #include <UPnP/WebServer.h>
 
-#define DHT_STATE_LENGTH	16
+#define BMP180_STATE_LENGTH	16
 
-class DHTSensorService : public UPnPService {
+class BMP180SensorService : public UPnPService {
   public:
-    DHTSensorService();
-    DHTSensorService(const char *deviceURN);
-    DHTSensorService(const char *serviceType, const char *serviceId);
-    ~DHTSensorService();
+    BMP180SensorService();
+    BMP180SensorService(const char *deviceURN);
+    BMP180SensorService(const char *serviceType, const char *serviceId);
+    ~BMP180SensorService();
     void begin();
-    const char *GetState();
-    void GetStateHandler();
+    const char *GetTemperature(), *GetPressure();
+    void GetPressureHandler();
 
     void poll();            // periodically poll the sensor
     
   private:
-    int sensorpin, sensortype;
-    char state[DHT_STATE_LENGTH];
+    char temperature[BMP180_STATE_LENGTH], pressure[BMP180_STATE_LENGTH];
     WebServer *http;
-    float oldtemperature, newtemperature;
-    float newhumidity, oldhumidity;
+    double newPressure, newTemperature;
+    double oldPressure, oldTemperature;
+    int percentage;	// How much of a difference before notify
+    SFE_BMP180 *bmp;
+
+    void FloatToString(float f, char *s);
+    void UpdateTemperature();
+    void UpdatePressure();
+    bool Difference(float oldval, float newval);
 };
 
-#endif /* _INCLUDE_DHT_SENSOR_SERVICE_H_ */
+#endif /* _INCLUDE_BMP180_SENSOR_SERVICE_H_ */

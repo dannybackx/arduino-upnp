@@ -32,7 +32,8 @@
 
 #define	ENABLE_SPIFFS
 #define	ENABLE_LED_SERVICE
-#define	ENABLE_DHT_SERVICE
+// #define	ENABLE_DHT_SERVICE
+#define	ENABLE_BMP_SERVICE
 
 #include "UPnP/UPnPDevice.h"
 #include "UPnP/SSDP.h"

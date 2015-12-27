@@ -10,6 +10,11 @@
 #include "MotionSensorService.h"
 #include "UPnP/LEDService.h"
 #include "UPnP/DHTSensorService.h"
+#ifdef ENABLE_BMP_SERVICE
+#include <Wire.h>
+#include "SFE_BMP180.h"
+#include <UPnP/BMP180SensorService.h>
+#endif
 
 // #include "GDBStub.h"
 
@@ -50,6 +55,7 @@ void setup() {
     wcr = WiFi.waitForConnectResult();
     if (wcr == WL_CONNECTED)
       break;
+    Serial.printf(" %d ", wifi_tries+1);
   }
   
   if (wcr == WL_CONNECTED) {  
@@ -132,12 +138,24 @@ void setup() {
     dht.begin();
 #endif
 
+#ifdef ENABLE_BMP_SERVICE
+    BMP180SensorService bmp = BMP180SensorService();
+    UPnP.addService(&bmp);
+    bmp.begin();
+#endif
+
     Serial.printf("Ready!\n");
     while (1) {
       ms_srv.poll();
       HTTP.handleClient();
 #ifdef ENABLE_LED_SERVICE
       led_srv.periodic();
+#endif
+#ifdef ENABLE_DHT_SERVICE
+      dht.poll();
+#endif
+#ifdef ENABLE_BMP_SERVICE
+      bmp.poll();
 #endif
       // Serial.printf("After HandleClient : Heap %X\n", ESP.getFreeHeap());
       delay(10);

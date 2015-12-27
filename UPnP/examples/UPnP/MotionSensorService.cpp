@@ -126,10 +126,10 @@ int sensor;
 void MotionSensorService::begin() {
   config = new Configuration("MotionSensor",
     new ConfigurationItem("pin", 4),
-    new ConfigurationItem("name", ""));
+    new ConfigurationItem("name", ""),
+    NULL);
   UPnPService::begin(config);
 
-  //sensor = 4;
   sensor = config->GetValue("pin");
 
 #ifdef DEBUG

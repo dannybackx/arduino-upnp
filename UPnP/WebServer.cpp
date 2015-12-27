@@ -51,8 +51,7 @@ WebServer::WebServer(int port)
 	, _currentArgCount(0)
 	, _currentArgs(0)
 {
-  plainBuf = (char *)0;
-  plainLen = 0;
+  nhandlers = 0;
 }
 
 void WebServer::CleanHeaders() {
@@ -72,12 +71,6 @@ WebServer::~WebServer() {
     delete handler;
     handler = next;
   }
-  
-  if (plainBuf) {
-    free(plainBuf);
-    plainBuf = NULL;
-  }
-  plainLen = 0;
 }
 
 void WebServer::begin() {
@@ -93,14 +86,15 @@ void WebServer::on(const char* uri, HTTPMethod method, WebServer::THandlerFuncti
 }
 
 void WebServer::_addRequestHandler(WebRequestHandler* handler) {
-    if (!_lastHandler) {
-      _firstHandler = handler;
-      _lastHandler = handler;
-    }
-    else {
-      _lastHandler->next = handler;
-      _lastHandler = handler;
-    }
+  nhandlers++;
+
+  if (!_lastHandler) {
+    _firstHandler = handler;
+    _lastHandler = handler;
+  } else {
+    _lastHandler->next = handler;
+    _lastHandler = handler;
+  }
 }
 
 void WebServer::handleClient() {

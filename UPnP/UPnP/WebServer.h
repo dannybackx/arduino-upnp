@@ -62,9 +62,6 @@ public:
   const char *httpMethod() { return _method; }
   const char *httpUri() { return _currentUri.c_str(); }
 
-  char *plainBuf;
-  int plainLen;
-
   String arg(const char* name);   // get request argument value by name
   String arg(int i);              // get request argument value by number
   String argName(int i);          // get request argument name by number
@@ -72,6 +69,7 @@ public:
   bool hasArg(const char* name);  // check if argument exists
 
   String hostHeader();            // get request host header if available or empty String if not
+  void ReadData(int &len, char *&buffer);
 
   // send response to the client
   // code - HTTP response code, can be 200 or 404
@@ -134,6 +132,7 @@ protected:
 
   String           _hostHeader;
 
+  int nhandlers;
   WebRequestHandler*  _firstHandler;
   WebRequestHandler*  _lastHandler;
   THandlerFunction _notFoundHandler;

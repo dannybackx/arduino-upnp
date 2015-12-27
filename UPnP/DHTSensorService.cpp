@@ -2,7 +2,7 @@
  * This is a sample of a UPnP service that runs on a IoT device.
  * 
  * UPnP commands/queries can be used from an application or a script.
- * This service represents the DHT-11 temperature and humidity sensor.
+ * This service represents the DHT-11 / DHT-22 temperature and humidity sensor.
  *
  * To be used with Adafruit's DHT sensor library https://github.com/adafruit/DHT-sensor-library .
  * 
@@ -38,7 +38,7 @@ extern WebServer HTTP;
 static void GetVersion();
 
 #define DEBUG Serial
-const int sensor = 4;   // FIXME GPIO 4 ??
+// const int sensor = 12;   // D6 GPIO12
 
 // Printf style template, parameters : serviceType, state
 static const char *gsh_template = "<u:GetStateResponse xmlns=\"%s\">\r\n<State>%s</State>\r\n</u:GetStateResponse>\r\n";
@@ -104,6 +104,8 @@ DHTSensorService::DHTSensorService(const char *serviceType, const char *serviceI
   addStateVariable(stateString, stringString, true);
 }
 
+DHT *dht;
+
 DHTSensorService::~DHTSensorService() {
 #ifdef DEBUG
   DEBUG.println("DHTSensorService DTOR");
@@ -111,20 +113,56 @@ DHTSensorService::~DHTSensorService() {
 }
 
 void DHTSensorService::begin() {
-  UPnPService::begin(NULL);
 #ifdef DEBUG
   DEBUG.println("DHTSensorService::begin");
 #endif
 
+  config = new Configuration("DHT",
+    new ConfigurationItem("pin", 12),
+    new ConfigurationItem("type", 11),
+    new ConfigurationItem("name", ""));
+  UPnPService::begin(config);
+
+  sensorpin = config->GetValue("pin");
+  sensortype = config->GetValue("type");
+
+  dht = new DHT(sensorpin, sensortype);
+  dht->begin();
+
+#ifdef DEBUG
+  DEBUG.printf("DHT::begin (sensor pin %d, type DHT-%d)\n", sensorpin, sensortype);
+#endif
 }
 
 void DHTSensorService::poll() {
-  oldstate = newstate;
+  oldtemperature = newtemperature;
+  oldhumidity = newhumidity;
 
-  if (oldstate != newstate) {
-    sprintf(state, "%d", newstate);
+  newtemperature = dht->readTemperature(false);
+  newhumidity = dht->readHumidity(false);
+  float fahr = dht->readTemperature(true);
+
+  if (isnan(newtemperature) || isnan(newhumidity)) {
+    newtemperature = oldtemperature;
+    newhumidity = oldhumidity;
+    return;
+  }
+
+  if (oldtemperature != newtemperature) {
+    sprintf(state, "%d", newtemperature);
 
     SendNotify("State");
+
+  // Serial.printf("DHT: temp %f\n", temp);
+  Serial.print("DHT: temp ");
+  Serial.print(newtemperature);
+  // Serial.print(" °C, humidity ");
+  Serial.print(" °C");
+  Serial.print(", ");
+  Serial.print(fahr);
+  Serial.print(" °F");
+  Serial.print(", humidity ");
+  Serial.println(newhumidity);
   }
 }
 
