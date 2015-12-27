@@ -85,6 +85,7 @@ static const char *percentageString = "Percentage";
 static const char *getStateString = "getState";
 static const char *getVersionString = "getVersion";
 static const char *stringString = "string";
+static const int defaultPercentage = 3;		// Percentage, see poll().
 
 BMP180SensorService::BMP180SensorService() :
   UPnPService(myServiceName, myServiceType, myServiceId)
@@ -131,17 +132,13 @@ void BMP180SensorService::begin() {
 
   config = new Configuration("BMP180",
     new ConfigurationItem("name", ""),
-    new ConfigurationItem(percentageString, 3),
+    new ConfigurationItem(percentageString, defaultPercentage),
     NULL);
   UPnPService::begin(config);
   percentage = config->GetValue(percentageString);
 
   bmp = new SFE_BMP180();
   bmp->begin();
-
-#ifdef DEBUG
-  DEBUG.printf("BMP180::begin\n");
-#endif
 }
 
 // Return true if a noticable difference
@@ -154,7 +151,7 @@ bool BMP180SensorService::Difference(float oldval, float newval) {
   else
     cmp1 = oldval;
   cmp2 = ((oldval - newval) / cmp1) * 100;
-#ifdef DEBUG
+#ifdef DEBUGx
   DEBUG.print("Difference ");
   DEBUG.print(cmp2);
   DEBUG.print(" = ");
@@ -169,23 +166,28 @@ bool BMP180SensorService::Difference(float oldval, float newval) {
   if (cmp2 < 0)
     cmp2 = -cmp2;
   if (percentage < cmp2) {
-#ifdef DEBUG
+#ifdef DEBUGx
     DEBUG.println(" --> true");
-    delay(10000);
 #endif
     return true;
   }
-#ifdef DEBUG
+#ifdef DEBUGx
   DEBUG.println(" --> false");
-  delay(10000);
 #endif
   return false;
 }
 
+/*
+ * Query the sensor. This is an I2C device, but all that complexity is in a separate class.
+ *
+ * This method makes sure we report changes only if they exceed a settable percentage.
+ * (Working with float readings requires something like this.)
+ */
 void BMP180SensorService::poll() {
   oldTemperature = newTemperature;
   oldPressure = newPressure;
 
+  // This is a multi-part query to the I2C device, see the SFE_BMP180 source files.
   char d = bmp->startTemperature();
   delay(d);
   d = bmp->getTemperature(newTemperature);
