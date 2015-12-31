@@ -34,6 +34,7 @@
 #define	ENABLE_LED_SERVICE
 // #define	ENABLE_DHT_SERVICE
 #define	ENABLE_BMP_SERVICE
+#define ENABLE_OTA
 
 #include "UPnP/UPnPDevice.h"
 #include "UPnP/SSDP.h"

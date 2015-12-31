@@ -20,8 +20,9 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  *
  * Modified 8 May 2015 by Hristo Gochkov (proper post and file upload handling)
+ *
  * Simplified by Danny Backx : remove parsing (not needed for XML),
- * (hopefully) remove memory issues.
+ * (hopefully) remove memory issues, separate the ReadData().
  *
  * getContentType() derived from work
  *   Copyright (c) 2015 Hristo Gochkov. All rights reserved.
@@ -308,6 +309,11 @@ void WebServer::onNotFound(THandlerFunction fn) {
   _notFoundHandler = fn;
 }
 
+/*
+ * This calls all the registered handlers one by one.
+ * They need to check whether they catch this, and return a boolean accordingly.
+ * That initial check is in WebRequestHandler.h, see e.g. FunctionRequestHandler::handle() .
+ */
 void WebServer::_handleRequest() {
   bool handled = false;
   int cl = -1;		// Only support HTTP-1.1 where Content-Length is specified
@@ -336,6 +342,10 @@ void WebServer::_handleRequest() {
       cl = atoi(upnp_headers[UPNP_METHOD_CONTENTLENGTH]);
 
     if (_currentMethod == HTTP_PUT && cl >= 0) {
+      //
+      // Receive files, sent via commands like :
+      //   curl -T config.txt 192.168.1.100:/config.txt
+      //
 #ifdef DEBUG_OUTPUT
       DEBUG_OUTPUT.printf("Store file %s, length %d\n", fn, cl);
 #endif
@@ -358,7 +368,10 @@ void WebServer::_handleRequest() {
         handled = true;
         send(404, "text/plain", String("File upload supported only via HTTP 1.1"));
     } else if (_currentMethod == HTTP_GET) {
-      // Read from filesystem
+      //
+      // The caller wants to read a file from our filesystem
+      // So send him its contents
+      //
       if (SPIFFS.exists(fn)) {
         File file = SPIFFS.open(fn, "r");
         const char *contentType = "text/xml";
@@ -442,8 +455,3 @@ const char *WebServer::getContentType(const char *filename) {
 
   return "text/plain";
 }
-
-/*
- * Receive files, sent via commands like :
- *   curl -T config.txt 192.168.1.100:/config.txt
- */
