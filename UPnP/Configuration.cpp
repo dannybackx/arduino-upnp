@@ -28,8 +28,9 @@
 #include <stdarg.h>
 #include <FS.h>
 
-#undef	DEBUG_PRINT
-// #define	DEBUG_PRINT Serial
+// #undef	DEBUG_PRINT
+#define	DEBUG_PRINT Serial
+// #define	DEBUG_PRINTx Serial
 
 #define LINE_LEN	80
 
@@ -108,6 +109,10 @@ void UPnPService::ReadConfiguration(const char *name, Configuration *config) {
 #endif
 	    break;
 	}
+    } else {
+#ifdef DEBUG_PRINTx
+        DEBUG_PRINT.printf("Configuration item for %s : NULL\n", t2);
+#endif
     }
   } while (len > 0);
 
@@ -137,20 +142,18 @@ Configuration::Configuration(const char *name, ConfigurationItem *item ...) {
   va_end(args);
 
   items = (ConfigurationItem **)malloc(cnt * sizeof(ConfigurationItem *));
-  int i=0;
+  nitems = 0;
+
   va_start(args, item);
   p = item;
   while (p) {
-    items[i++] = p;
+    items[nitems++] = p;
     p = va_arg(args, ConfigurationItem *);
   }
   va_end(args);
 }
 
 ConfigurationItem::ConfigurationItem(const char *name, int value) {
-#ifdef DEBUG_PRINT
-  DEBUG_PRINT.printf("ConfigurationItem::ConfigurationItem(%s)\n", name);
-#endif
   this->name = name;
   this->ivalue = value;
   this->type = TYPE_DEFAULT_INT;
@@ -158,9 +161,6 @@ ConfigurationItem::ConfigurationItem(const char *name, int value) {
 }
 
 ConfigurationItem::ConfigurationItem(const char *name, const char *value) {
-#ifdef DEBUG_PRINT
-  DEBUG_PRINT.printf("ConfigurationItem::ConfigurationItem(%s)\n", name);
-#endif
   this->name = name;
   char *s = (char *)malloc(strlen(value)+1);
   strcpy(s, value);
@@ -169,11 +169,8 @@ ConfigurationItem::ConfigurationItem(const char *name, const char *value) {
 }
 
 ConfigurationItem *Configuration::GetItem(const char *itemname) {
-#ifdef DEBUG_PRINTx
-  DEBUG_PRINT.printf("ConfigurationItem::GetItem(%s)\n", itemname);
-#endif
   for (int i=0; i<nitems; i++) {
-    if (strcasecmp(itemname, items[i]->GetName()) == 0) {
+    if (itemname && items[i] && items[i]->GetName() && strcasecmp(itemname, items[i]->GetName()) == 0) {
       return items[i];
     }
   }
@@ -192,15 +189,9 @@ int Configuration::GetValue(const char *name) {
   if (name == NULL) {
     return NULL;
   }
-#ifdef DEBUG_PRINTx
-    DEBUG_PRINT.printf("ConfigurationItem::GetValue(%s)\n", name);
-#endif
   ConfigurationItem *ci = GetItem(name);
   if (ci == NULL) {
     return NULL;
-#ifdef DEBUG_PRINTx
-    DEBUG_PRINT.printf("ConfigurationItem::GetValue(%s) ci == NULL\n", name);
-#endif
   }
   return ci->GetValue();
 }
@@ -222,7 +213,10 @@ void ConfigurationItem::SetValue(int v) {
 }
 
 const char *Configuration::GetStringValue(const char *name) {
-  return GetItem(name)->GetStringValue();
+  ConfigurationItem *ci = GetItem(name);
+  if (ci)
+    return ci->GetStringValue();
+  return NULL;
 }
 
 const char *ConfigurationItem::GetStringValue() {
