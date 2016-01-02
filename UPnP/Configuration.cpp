@@ -227,6 +227,7 @@ enum ValueType ConfigurationItem::GetType() {
   return type;
 }
 
+// Does a value come from default, or from a configuration file ?
 bool Configuration::configured(const char *name) {
   if (name == NULL)
     return false;
@@ -234,7 +235,6 @@ bool Configuration::configured(const char *name) {
   if (i == NULL)
     return false;
   switch (i->GetType()) {
-#if 0
   case TYPE_NONE:
   case TYPE_DEFAULT_INT:
   case TYPE_DEFAULT_STRING:
@@ -242,14 +242,5 @@ bool Configuration::configured(const char *name) {
   case TYPE_INT:
   case TYPE_STRING:
     return true;
-#else
-  case TYPE_NONE:
-    return false;
-  case TYPE_DEFAULT_INT:
-  case TYPE_DEFAULT_STRING:
-  case TYPE_INT:
-  case TYPE_STRING:
-    return true;
-#endif
   }
 }

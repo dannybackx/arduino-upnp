@@ -3,53 +3,41 @@
 #include <UPnP/WebServer.h>
 #include <UPnP/UPnPDevice.h>
 #include <UPnP/SSDP.h>
+#include <Wire.h>       // Required to compile UPnP
 #include <FS.h>
+#include <UPnP/AlarmService.h>
+
+// Prepare for OTA software installation
 #include <ESP8266mDNS.h>
 #include <ArduinoOTA.h>
 static int OTAprev;
 
-#include <sntp.h>
-#include <time.h>
-
-#include "MotionSensorService.h"
-#include "UPnP/LEDService.h"
-#include "UPnP/DHTSensorService.h"
-#ifdef ENABLE_BMP_SERVICE
-#include <Wire.h>
-#include "SFE_BMP180.h"
-#include <UPnP/BMP180SensorService.h>
-#endif
-
+// Stuff for sending mail
 #include <SmtpClient.h>
-
-// #include "GDBStub.h"
-
-// Stuff to sync this source file in github
-// Provide a "mywifi.h" file that defines the two macros below
-//
-// So copy something like this into that file and put in the right values :
-// #define MY_SSID "your-ssid"
-// #define MY_WIFI_PASSWORD "your-password"
+#include "Mail.h"
 
 #include "mywifi.h"
 const char* ssid     = MY_SSID;
 const char* password = MY_WIFI_PASSWORD;
 
-// const char *serviceType = "urn:danny-backx-info:service:sensor:1";
-// const char *serviceId = "urn:danny-backx-info:serviceId:sensor1";
-char *deviceURN = "urn:schemas-upnp-org:device:ESP8266:1";
+char *deviceURN = "urn:schemas-upnp-org:device:ESP8266 Alarm Controller:1";
+
+#include <sntp.h>
+#include <time.h>
+
+//#include <GDBStub.h>
 
 WebServer HTTP(80);
 UPnPDevice device;
 
 void setup() {
-  Serial.begin(9600);   // fits better with putty default
+  Serial.begin(9600);
 //  Serial.begin(115200);
-  Serial.println("Sensor system");
+  Serial.println("Alarm Controller");
   Serial.printf("Boot version %d, flash chip size %d, SDK version %s\n",
-                ESP.getBootVersion(), ESP.getFlashChipSize(), ESP.getSdkVersion());
+    ESP.getBootVersion(), ESP.getFlashChipSize(), ESP.getSdkVersion());
+
   Serial.printf("Free sketch space %d\n", ESP.getFreeSketchSpace());
-  
   Serial.print("Starting WiFi... ");
   WiFi.mode(WIFI_STA);
 
@@ -84,8 +72,18 @@ void setup() {
 
 #ifdef ENABLE_SPIFFS
   SPIFFS.begin();
+#if 0
+  Serial.print("SPIFFS : formatting ...");
+  SPIFFS.format();
+  Serial.println(" done");
+#endif
   Dir dir = SPIFFS.openDir("/");
   Serial.println("SPIFFS directory {/} :");
+  while (dir.next()) {
+    Serial.print("  "); Serial.println(dir.fileName());
+  }
+  dir = SPIFFS.openDir("");
+  Serial.println("SPIFFS directory {} :");
   while (dir.next()) {
     Serial.print("  "); Serial.println(dir.fileName());
   }
@@ -95,18 +93,9 @@ void setup() {
   Serial.printf("SPIFFS total %d used %d maxpathlength %d\n",
                 fs_info.totalBytes, fs_info.usedBytes, fs_info.maxPathLength);
 
-  //    SPIFFS.format();
-  //    SPIFFS.remove("/config.xml");
-
-  // Create a file
   File f = SPIFFS.open("/config.txt", "r");
   if (f) {
     Serial.printf("SPIFFS : /config.txt exists, content %d bytes\n", f.size());
-    f.close();
-  } else {
-    f = SPIFFS.open("/config.txt", "w");
-    f.printf("LED:active:50\n");
-    f.printf("LED:passive:450\n");
     f.close();
   }
 #endif
@@ -132,36 +121,18 @@ void setup() {
   device.setManufacturer("Danny Backx");
   device.setManufacturerURL("http://danny.backx.info");
   SSDP.begin(device);
-
   UPnP.begin(&HTTP, &device);
 
-  MotionSensorService ms_srv = MotionSensorService();
-  UPnP.addService(&ms_srv);
-
-#ifdef ENABLE_LED_SERVICE
-  LEDService led_srv = LEDService();
-  led_srv.begin();
-  UPnP.addService(&led_srv);
-#endif
-#ifdef ENABLE_DHT_SERVICE
-  DHTSensorService dht = DHTSensorService();
-  UPnP.addService(&dht);
-  dht.begin();
-#endif
-
-#ifdef ENABLE_BMP_SERVICE
-  BMP180SensorService bmp = BMP180SensorService();
-  UPnP.addService(&bmp);
-  bmp.begin();
-#endif
+  AlarmService alarm = AlarmService();
+  UPnP.addService(&alarm);
 
 #ifdef ENABLE_OTA
-  Serial.printf("Starting OTA listener...\n");
+  Serial.printf("Starting OTA listener ...\n");
   ArduinoOTA.onStart([]() {
     Serial.print("OTA Start : ");
   });
   ArduinoOTA.onEnd([]() {
-    Serial.println("\nOTA End");
+    Serial.println("\nOTA Complete");
   });
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
     int curr;
@@ -179,11 +150,13 @@ void setup() {
     else if (error == OTA_END_ERROR) Serial.println("End Failed");
   });
   ArduinoOTA.setPort(8266);
-  ArduinoOTA.setHostname("OTA-Sensor");
+  ArduinoOTA.setHostname("OTA-Controller");
+  // ArduinoOTA.setPassword((const char *)"123");
+
   ArduinoOTA.begin();
+
 #endif
 
-  // Wait for a correct time, and report it
   time_t t;
   Serial.printf("Time ");
   t = sntp_get_current_timestamp();
@@ -192,33 +165,16 @@ void setup() {
     delay(1000);
     t = sntp_get_current_timestamp();
   }
-  Serial.printf(" is %s", asctime(localtime(&t)));
+  Serial.printf(" is %s\n", asctime(localtime(&t)));
 
   Serial.printf("Ready!\n");
   while (1) {
-    ms_srv.poll();
     HTTP.handleClient();
-#ifdef ENABLE_LED_SERVICE
-    led_srv.periodic();
-#endif
-#ifdef ENABLE_DHT_SERVICE
-    dht.poll();
-#endif
-#ifdef ENABLE_BMP_SERVICE
-    bmp.poll();
-#endif
-
 #ifdef ENABLE_OTA
     ArduinoOTA.handle();
 #endif
-    // Serial.printf("After HandleClient : Heap %X\n", ESP.getFreeHeap());
-    delay(10);
   }
 }
 
 void loop() {
-  HTTP.handleClient();
-  Serial.printf("After HandleClient : Heap %X\n", ESP.getFreeHeap());
-  // Serial.printf("Called handleClient()...\n");
-  delay(10);
 }

@@ -2,7 +2,7 @@
  * This is a sample of a UPnP service that runs on a IoT device.
  * 
  * UPnP commands/queries can be used from an application or a script.
- * This service is a programmable LED.
+ * This service is an Alarm output (buzzer, lights, ..).
  * 
  * Copyright (c) 2015 Danny Backx
  * 
@@ -28,16 +28,16 @@
 
 #include "UPnP.h"
 #include "UPnP/UPnPService.h"
-#include "UPnP/LEDService.h"
+#include "UPnP/AlarmService.h"
 #include "UPnP/WebServer.h"
+
+#include <SmtpClient.h>
+#include <Mail.h>
 
 extern WebServer HTTP;
 static void GetVersion();
 
 #define DEBUG Serial
-// const int led = 0;      // ESP8266-12E D3 (GPIO0)
-// Don't use the internal LED, it will crash (WDT reset) the device
-// const int led = 6;	// ESP8266-12E internal LED (GPIO6)
 
 // Printf style template, parameters : serviceType, state
 static const char *gsh_template = "<u:GetStateResponse xmlns=\"%s\">\r\n<State>%s</State>\r\n</u:GetStateResponse>\r\n";
@@ -82,129 +82,113 @@ static const char *versionFileInfo = __FILE__;
 static const char *versionDateInfo = __DATE__;
 static const char *versionTimeInfo = __TIME__;
 
-static const char *myServiceName = "LEDService";
-static const char *myServiceType = "urn:danny-backx-info:service:led:1";
-static const char *myServiceId = "urn:danny-backx-info:serviceId:led1";
+static const char *myServiceName = "AlarmService";
+static const char *myServiceType = "urn:danny-backx-info:service:alarm:1";
+static const char *myServiceId = "urn:danny-backx-info:serviceId:alarm1";
 static const char *stateString = "State";
 static const char *getStateString = "getState";
 static const char *setStateString = "setState";
 static const char *getVersionString = "getVersion";
 static const char *stringString = "string";
 
-LEDService::LEDService() :
+AlarmService::AlarmService() :
   UPnPService(myServiceName, myServiceType, myServiceId)
 {
-  addAction(getStateString, static_cast<MemberActionFunction>(&LEDService::GetStateHandler), getStateXML);
-  addAction(setStateString, static_cast<MemberActionFunction>(&LEDService::SetStateHandler), setStateXML);
+  addAction(getStateString, static_cast<MemberActionFunction>(&AlarmService::GetStateHandler), getStateXML);
+  addAction(setStateString, static_cast<MemberActionFunction>(&AlarmService::SetStateHandler), setStateXML);
   addAction(getVersionString, GetVersion, getVersionXML);
   addStateVariable(stateString, stringString, true);
   begin();
 }
 
-LEDService::LEDService(const char *deviceURN) :
+AlarmService::AlarmService(const char *deviceURN) :
   UPnPService(myServiceName, myServiceType, myServiceId)
 {
-  addAction(getStateString, static_cast<MemberActionFunction>(&LEDService::GetStateHandler), getStateXML);
-  addAction(setStateString, static_cast<MemberActionFunction>(&LEDService::SetStateHandler), setStateXML);
+  addAction(getStateString, static_cast<MemberActionFunction>(&AlarmService::GetStateHandler), getStateXML);
+  addAction(setStateString, static_cast<MemberActionFunction>(&AlarmService::SetStateHandler), setStateXML);
   addAction(getVersionString, GetVersion, getVersionXML);
   addStateVariable(stateString, stringString, true);
   begin();
 }
 
-LEDService::LEDService(const char *serviceType, const char *serviceId) :
+AlarmService::AlarmService(const char *serviceType, const char *serviceId) :
   UPnPService(myServiceName, serviceType, serviceId)
 {
-  addAction(getStateString, static_cast<MemberActionFunction>(&LEDService::GetStateHandler), getStateXML);
-  addAction(setStateString, static_cast<MemberActionFunction>(&LEDService::SetStateHandler), setStateXML);
+  addAction(getStateString, static_cast<MemberActionFunction>(&AlarmService::GetStateHandler), getStateXML);
+  addAction(setStateString, static_cast<MemberActionFunction>(&AlarmService::SetStateHandler), setStateXML);
   addAction(getVersionString, GetVersion, getVersionXML);
   addStateVariable(stateString, stringString, true);
   begin();
 }
 
-LEDService::~LEDService() {
+AlarmService::~AlarmService() {
 #ifdef DEBUG
-  DEBUG.println("LEDService DTOR");
+  DEBUG.println("AlarmService DTOR");
 #endif  
 }
 
-void LEDService::begin() {
-  if (state != LED_STATE_INVALID)
+void AlarmService::begin() {
+  if (state != ALARM_STATE_INVALID)
     return;	// Already been here
-  state = LED_STATE_OFF;
+  state = ALARM_STATE_OFF;
 
-  config = new Configuration("LED",
-    new ConfigurationItem("pin", LED_PIN_DEFAULT),
-    new ConfigurationItem("name", NULL),
-    new ConfigurationItem("passive", LED_PASSIVE_DEFAULT),
-    new ConfigurationItem("active", LED_ACTIVE_DEFAULT),
+  config = new Configuration("Alarm",
+    new ConfigurationItem("code", "1234"),
+    // new ConfigurationItem(mail, 1),
+    new ConfigurationItem("from", ""),
+    new ConfigurationItem("to", ""),
     NULL);
   UPnPService::begin(config);
-  led = config->GetValue("pin");
+  alarmpin = config->GetValue("pin");
 
 #ifdef DEBUG
-  DEBUG.printf("LEDService::begin (pin %d)\n", led);
+  DEBUG.printf("AlarmService::begin (pin %d)\n", alarmpin);
 #endif
 
-  pinMode(led, OUTPUT);
+  pinMode(alarmpin, OUTPUT);
 
-  state = LED_STATE_OFF;
+  state = ALARM_STATE_OFF;
 
+  /*
   if (config->configured("active") && config->configured("passive")) {
     setPeriod(config->GetValue("active"), config->GetValue("passive"));
-    SetState(LED_STATE_BLINK);
+    SetState(ALARM_STATE_BLINK);
 #ifdef DEBUG
-    DEBUG.printf("LEDService blink %d %d\n",
+    DEBUG.printf("AlarmService blink %d %d\n",
       config->GetValue("active"),
       config->GetValue("passive"));
 #endif
   }
+  /* */
 }
 
-enum LEDState LEDService::GetState() {
+enum AlarmState AlarmService::GetState() {
   return state;
 }
 
-void LEDService::SetState(enum LEDState state) {
+void AlarmService::SetState(enum AlarmState state) {
   this->state = state;
 }
 
 /*
  * Note this depends on how frequently the caller calls this method.
  */
-void LEDService::setPeriod(int active, int passive) {
+void AlarmService::setPeriod(int active, int passive) {
   this->active = active;
   this->passive = passive;
   this->count = 0;
 }
 
-void LEDService::periodic() {
+void AlarmService::periodic() {
   switch (state) {
-  case LED_STATE_ALARM:
-  case LED_STATE_ON:
-    digitalWrite(led, HIGH);
+  case ALARM_STATE_ALARM:
+  case ALARM_STATE_ON:
+    digitalWrite(alarmpin, HIGH);
     break;
 
-  case LED_STATE_BLINK:
-    periodicBlink();
+  case ALARM_STATE_OFF:
+    digitalWrite(alarmpin, LOW);
     break;
-
-  case LED_STATE_OFF:
-    digitalWrite(led, LOW);
-    break;
-  }
-}
-
-void LEDService::periodicBlink() {
-  count++;
-
-  // The LED is on between 0 and active
-  if (count == active)
-    digitalWrite(led, LOW);
-
-  // The LED is off between active and active+passive
-  if (count == active + passive) {
-      count = 0;
-    digitalWrite(led, HIGH);
   }
 }
 
@@ -216,16 +200,16 @@ static void GetVersion() {
 }
 
 // Example of a member function to handle UPnP requests : this can access stuff in the class
-void LEDService::GetStateHandler() {
+void AlarmService::GetStateHandler() {
   int l2 = strlen(gsh_template) + strlen(myServiceType) + MSS_STATE_LENGTH,
       l1 = strlen(UPnPClass::envelopeHeader) + l2 + strlen(UPnPClass::envelopeTrailer) + 5;
   char *tmp2 = (char *)malloc(l2),
        *tmp1 = (char *)malloc(l1);
 #ifdef DEBUG
-  DEBUG.println("LEDService::GetStateHandler");
+  DEBUG.println("AlarmService::GetStateHandler");
 #endif
   strcpy(tmp1, UPnPClass::envelopeHeader);
-  sprintf(tmp2, gsh_template, myServiceType, LEDService::state);
+  sprintf(tmp2, gsh_template, myServiceType, AlarmService::state);
   strcat(tmp1, tmp2);
   free(tmp2);
   strcat(tmp1, UPnPClass::envelopeTrailer);
@@ -234,19 +218,36 @@ void LEDService::GetStateHandler() {
 }
 
 // Example of a member function to handle UPnP requests : this can access stuff in the class
-void LEDService::SetStateHandler() {
+void AlarmService::SetStateHandler() {
   int l2 = strlen(gsh_template) + strlen(myServiceType) + MSS_STATE_LENGTH,
       l1 = strlen(UPnPClass::envelopeHeader) + l2 + strlen(UPnPClass::envelopeTrailer) + 5;
   char *tmp2 = (char *)malloc(l2),
        *tmp1 = (char *)malloc(l1);
 #ifdef DEBUG
-  DEBUG.println("LEDService::SetStateHandler");
+  DEBUG.println("AlarmService::SetStateHandler");
 #endif
   strcpy(tmp1, UPnPClass::envelopeHeader);
-  sprintf(tmp2, gsh_template, myServiceType, LEDService::state);
+  sprintf(tmp2, gsh_template, myServiceType, AlarmService::state);
   strcat(tmp1, tmp2);
   free(tmp2);
   strcat(tmp1, UPnPClass::envelopeTrailer);
   HTTP.send(200, UPnPClass::mimeTypeXML, tmp1);
   free(tmp1);
+}
+
+void SendMailSample() {
+  // Try sending mail
+  byte mailip[] = {193, 74, 71, 25};	// smtp.scarlet.be
+  WiFiClient wc;
+  SmtpClient *smtp = new SmtpClient(&wc, mailip);
+
+  Mail mail;
+  mail.from("<danny.backx@scarlet.be>");
+  mail.to("<danny.backx@scarlet.be>");
+  mail.subject("Test from arduino");
+  mail.body("Yes I can\n");
+  int r = smtp->send(&mail);
+  Serial.printf("Send mail : %d\n", r);
+  if (r == 0)
+    Serial.printf("Error text %s, line %d\n", smtp->GetErrorText(), smtp->GetErrorLine());
 }

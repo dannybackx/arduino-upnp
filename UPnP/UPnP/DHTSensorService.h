@@ -33,6 +33,8 @@
 #include <UPnP/WebServer.h>
 
 #define DHT_STATE_LENGTH	16
+#define	DHT_SENSOR_PIN_DEFAULT	12
+#define DHT_SENSOR_TYPE_DEFAULT	11
 
 class DHTSensorService : public UPnPService {
   public:
@@ -47,6 +49,8 @@ class DHTSensorService : public UPnPService {
     void poll();            // periodically poll the sensor
     
   private:
+    Configuration *config;
+
     int sensorpin, sensortype;
     char state[DHT_STATE_LENGTH];
     WebServer *http;

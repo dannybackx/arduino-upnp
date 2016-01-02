@@ -2,7 +2,7 @@
  * This is a sample of a UPnP service that runs on a IoT device.
  * 
  * UPnP commands/queries can be used from an application or a script.
- * This service represents the BMP-180 Barometic pressure and temperature sensor.
+ * This service is an Alarm output.
  *  
  * Copyright (c) 2015 Danny Backx
  * 
@@ -25,41 +25,66 @@
  *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *   THE SOFTWARE.
  */
-#ifndef _INCLUDE_BMP180_SENSOR_SERVICE_H_
-#define _INCLUDE_BMP180_SENSOR_SERVICE_H_
+#ifndef _INCLUDE_ALARM_SERVICE_H_
+#define _INCLUDE_ALARM_SERVICE_H_
 
 #include "UPnP.h"
 #include "UPnP/UPnPService.h"
 #include <UPnP/WebServer.h>
 
-#define BMP180_STATE_LENGTH	16
+#define ALARM_DEFAULT_PIN	0
 
-class BMP180SensorService : public UPnPService {
+// FIXME
+#define MSS_STATE_LENGTH	16
+
+enum AlarmState {
+    // Detect that begin() wasn't called yet
+    ALARM_STATE_INVALID,
+
+    ALARM_STATE_OFF,
+    ALARM_STATE_ALARM,
+    ALARM_STATE_ON,
+
+    // Add stuff before, not after this
+    ALARM_STATE_END
+};
+
+class AlarmService : public UPnPService {
   public:
-    BMP180SensorService();
-    BMP180SensorService(const char *deviceURN);
-    BMP180SensorService(const char *serviceType, const char *serviceId);
-    ~BMP180SensorService();
-    void begin();
-    const char *GetTemperature(), *GetPressure();
-    void GetPressureHandler();
+    AlarmService();
+    AlarmService(const char *deviceURN);
+    AlarmService(const char *serviceType, const char *serviceId);
+    ~AlarmService();
 
-    void poll();            // periodically poll the sensor
+    void begin();
+    enum AlarmState GetState();
+    void SetState(enum AlarmState);
+    void GetStateHandler();
+    void SetStateHandler();
+
+    void setPeriod(int active, int passive);
+    void periodic();
     
   private:
     Configuration *config;
 
-    char temperature[BMP180_STATE_LENGTH], pressure[BMP180_STATE_LENGTH];
-    WebServer *http;
-    double newPressure, newTemperature;
-    double oldPressure, oldTemperature;
-    int percentage;	// How much of a difference before notify
-    SFE_BMP180 *bmp;
+    //
+    int alarmpin;
+    enum AlarmState state;
+    int count, passive, active;		// FIXME from LED
 
-    void FloatToString(float f, char *s);
-    void UpdateTemperature();
-    void UpdatePressure();
-    bool Difference(float oldval, float newval);
+    // Mail parameters
+    int mail;				// Whether to send e-mail on alarm
+    char *from, *to;
+
+    // Alarm controller
+    char *code;				// Unlock code
 };
 
-#endif /* _INCLUDE_BMP180_SENSOR_SERVICE_H_ */
+#define ALARM_GLOBAL
+
+#ifdef ALARM_GLOBAL
+extern AlarmService ALARM;
+#endif
+
+#endif /* _INCLUDE_ALARM_SERVICE_H_ */

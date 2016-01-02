@@ -32,7 +32,12 @@
 #include "UPnP/UPnPService.h"
 #include <UPnP/WebServer.h>
 
-#define MSS_STATE_LENGTH  16
+#define LED_PIN_DEFAULT	0
+#define	LED_PASSIVE_DEFAULT	190
+#define	LED_ACTIVE_DEFAULT	10
+
+// FIXME
+#define MSS_STATE_LENGTH	16
 
 enum LEDState {
     // Detect that begin() wasn't called yet
@@ -63,6 +68,10 @@ class LEDService : public UPnPService {
     void periodic();
     
   private:
+    Configuration *config;
+
+    int led;
+
     enum LEDState state;
     int count, passive, active;
     void periodicBlink();

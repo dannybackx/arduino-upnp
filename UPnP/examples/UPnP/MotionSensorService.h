@@ -50,6 +50,10 @@ class MotionSensorService : public UPnPService {
     void poll();            // periodically poll the sensor
     
   private:
+    Configuration *config;
+
+    int sensorpin;
+    
     char state[MSS_STATE_LENGTH];
     WebServer *http;
     int oldstate, newstate;

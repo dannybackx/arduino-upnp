@@ -118,8 +118,8 @@ void DHTSensorService::begin() {
 #endif
 
   config = new Configuration("DHT",
-    new ConfigurationItem("pin", 12),
-    new ConfigurationItem("type", 11),
+    new ConfigurationItem("pin", DHT_SENSOR_PIN_DEFAULT),
+    new ConfigurationItem("type", DHT_SENSOR_TYPE_DEFAULT),
     new ConfigurationItem("name", ""));
   UPnPService::begin(config);
 

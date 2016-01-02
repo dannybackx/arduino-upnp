@@ -120,9 +120,6 @@ MotionSensorService::~MotionSensorService() {
 #endif  
 }
 
-static Configuration *config;
-int sensor;
-
 void MotionSensorService::begin() {
   config = new Configuration("MotionSensor",
     new ConfigurationItem("pin", 4),
@@ -130,13 +127,13 @@ void MotionSensorService::begin() {
     NULL);
   UPnPService::begin(config);
 
-  sensor = config->GetValue("pin");
+  sensorpin = config->GetValue("pin");
 
 #ifdef DEBUG
-  DEBUG.printf("MotionSensorService::begin (sensor pin %d)\n", sensor);
+  DEBUG.printf("MotionSensorService::begin (sensor pin %d)\n", sensorpin);
 #endif
-  pinMode(sensor, INPUT);
-  oldstate = newstate = digitalRead(sensor);
+  pinMode(sensorpin, INPUT);
+  oldstate = newstate = digitalRead(sensorpin);
 #ifdef HAVE_LED
   pinMode(led, OUTPUT);
 #endif
@@ -144,7 +141,7 @@ void MotionSensorService::begin() {
 
 void MotionSensorService::poll() {
   oldstate = newstate;
-  newstate = digitalRead(sensor);
+  newstate = digitalRead(sensorpin);
 
   if (oldstate != newstate) {
 #ifdef HAVE_LED

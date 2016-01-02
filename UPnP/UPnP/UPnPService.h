@@ -103,8 +103,9 @@ class UPnPService {
     int ReadLine(File f);
     char *line;
 
-  protected:
     Configuration *config;
+
+  protected:
 
 };
 
