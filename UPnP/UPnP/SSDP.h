@@ -2,7 +2,7 @@
  * ESP8266 Simple Service Discovery
  *
  * Copyright (c) 2015 Hristo Gochkov
- * Copyright (c) 2015 Danny Backx
+ * Copyright (c) 2015, 2016 Danny Backx
  * 
  * Original (Arduino) version by Filippo Sallemi, July 23, 2014.
  * Can be found at: https://github.com/nomadnt/uSSDP
@@ -73,6 +73,8 @@ class SSDPClass {
 
   private:
     UPnPDevice device;
+    void RegisterNotify();
+    void EverySecond();
 };
 
 extern SSDPClass SSDP;

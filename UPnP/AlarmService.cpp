@@ -4,7 +4,7 @@
  * UPnP commands/queries can be used from an application or a script.
  * This service is an Alarm output (buzzer, lights, ..).
  * 
- * Copyright (c) 2015 Danny Backx
+ * Copyright (c) 2015, 2016 Danny Backx
  * 
  * License (MIT license):
  *   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -81,14 +81,21 @@ static const char *versionTemplate = "%s %s %s\n";
 static const char *versionFileInfo = __FILE__;
 static const char *versionDateInfo = __DATE__;
 static const char *versionTimeInfo = __TIME__;
-
+// UPnP stuff
 static const char *myServiceName = "AlarmService";
 static const char *myServiceType = "urn:danny-backx-info:service:alarm:1";
 static const char *myServiceId = "urn:danny-backx-info:serviceId:alarm1";
+// Variables
+static const char *codeString = "Code";
 static const char *stateString = "State";
+static const char *fromString = "From";
+static const char *toString = "To";
+static const char *mailHostString = "MailHost";
+// Actions
 static const char *getStateString = "getState";
 static const char *setStateString = "setState";
 static const char *getVersionString = "getVersion";
+// Types
 static const char *stringString = "string";
 
 AlarmService::AlarmService() :
@@ -98,6 +105,10 @@ AlarmService::AlarmService() :
   addAction(setStateString, static_cast<MemberActionFunction>(&AlarmService::SetStateHandler), setStateXML);
   addAction(getVersionString, GetVersion, getVersionXML);
   addStateVariable(stateString, stringString, true);
+  addStateVariable(codeString, stringString, false);
+  addStateVariable(fromString, stringString, false);
+  addStateVariable(toString, stringString, false);
+  addStateVariable(mailHostString, stringString, false);
   begin();
 }
 
@@ -108,6 +119,10 @@ AlarmService::AlarmService(const char *deviceURN) :
   addAction(setStateString, static_cast<MemberActionFunction>(&AlarmService::SetStateHandler), setStateXML);
   addAction(getVersionString, GetVersion, getVersionXML);
   addStateVariable(stateString, stringString, true);
+  addStateVariable(codeString, stringString, false);
+  addStateVariable(fromString, stringString, false);
+  addStateVariable(toString, stringString, false);
+  addStateVariable(mailHostString, stringString, false);
   begin();
 }
 
@@ -118,6 +133,10 @@ AlarmService::AlarmService(const char *serviceType, const char *serviceId) :
   addAction(setStateString, static_cast<MemberActionFunction>(&AlarmService::SetStateHandler), setStateXML);
   addAction(getVersionString, GetVersion, getVersionXML);
   addStateVariable(stateString, stringString, true);
+  addStateVariable(codeString, stringString, false);
+  addStateVariable(fromString, stringString, false);
+  addStateVariable(toString, stringString, false);
+  addStateVariable(mailHostString, stringString, false);
   begin();
 }
 
@@ -134,7 +153,7 @@ void AlarmService::begin() {
 
   config = new Configuration("Alarm",
     new ConfigurationItem("code", "1234"),
-    // new ConfigurationItem(mail, 1),
+    // new ConfigurationItem(mail, 1),			// FIXME
     new ConfigurationItem("from", ""),
     new ConfigurationItem("to", ""),
     NULL);

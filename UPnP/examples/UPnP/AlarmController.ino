@@ -7,6 +7,8 @@
 #include <FS.h>
 #include <UPnP/AlarmService.h>
 
+#define ENABLE_DISCOVERY_UPNP
+
 // Prepare for OTA software installation
 #include <ESP8266mDNS.h>
 #include <ArduinoOTA.h>
@@ -15,6 +17,8 @@ static int OTAprev;
 // Stuff for sending mail
 #include <SmtpClient.h>
 #include "Mail.h"
+
+#include <UPnP/DiscoveryManager.h>
 
 #include "mywifi.h"
 const char* ssid     = MY_SSID;
@@ -32,7 +36,6 @@ UPnPDevice device;
 
 void setup() {
   Serial.begin(9600);
-//  Serial.begin(115200);
   Serial.println("Alarm Controller");
   Serial.printf("Boot version %d, flash chip size %d, SDK version %s\n",
     ESP.getBootVersion(), ESP.getFlashChipSize(), ESP.getSdkVersion());
@@ -113,14 +116,14 @@ void setup() {
   device.setSchemaURL("description.xml");
   device.setHTTPPort(80);
   device.setName("UPnP Motion Sensor Kit");
-  device.setSerialNumber("001788102201");
+  device.setSerialNumber("32302000101");
   device.setURL("index.html");
   device.setModelName("UPnP Motion Sensor Kit");
-  device.setModelNumber("929000226503");
+  device.setModelNumber("32302000101");
   device.setModelURL("http://danny.backx.info");
   device.setManufacturer("Danny Backx");
   device.setManufacturerURL("http://danny.backx.info");
-  SSDP.begin(device);
+//  SSDP.begin(device);
   UPnP.begin(&HTTP, &device);
 
   AlarmService alarm = AlarmService();
@@ -157,6 +160,7 @@ void setup() {
 
 #endif
 
+  // Wait for a correct time, and report it
   time_t t;
   Serial.printf("Time ");
   t = sntp_get_current_timestamp();
@@ -165,13 +169,29 @@ void setup() {
     delay(1000);
     t = sntp_get_current_timestamp();
   }
-  Serial.printf(" is %s\n", asctime(localtime(&t)));
+  Serial.printf(" is %s", asctime(localtime(&t)));
+
+#ifdef ENABLE_DISCOVERY_UPNP
+  DiscoveryManager dm = DiscoveryManager();
+  dm.begin();
+
+  // Add configured servers
+  dm.AddConfiguredServers();
+
+  // Default query 
+  dm.QuerySensors();
+  
+  // ...
+#endif
 
   Serial.printf("Ready!\n");
   while (1) {
     HTTP.handleClient();
 #ifdef ENABLE_OTA
     ArduinoOTA.handle();
+#endif
+#ifdef ENABLE_DISCOVERY_UPNP
+    dm.periodic();
 #endif
   }
 }

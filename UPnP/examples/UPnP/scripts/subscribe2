@@ -1,5 +1,5 @@
 #!/bin/sh
-IP=192.168.1.100
+IP=192.168.1.101
 PORT=80
 DIR=motionSensor/event
 echo "Query $IP ..."

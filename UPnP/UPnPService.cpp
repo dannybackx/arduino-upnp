@@ -3,7 +3,7 @@
  *   Simple means little or no support for lots of services and devices.
  *   An IoT device probably implements just one thing...
  *
- * Copyright (c) 2015 Danny Backx
+ * Copyright (c) 2015, 2016 Danny Backx
  * 
  * License (MIT license):
  *   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -60,6 +60,26 @@ static const char *_upnp_scpd_template =
   "%s"			// getStateVariableListXML
   "</scpd>\r\n"
   "\r\n";
+
+UPnPService::UPnPService() {
+#ifdef UPNP_DEBUG
+  UPNP_DEBUG.printf("UPnPService()\n");
+#endif
+  nactions = 0;
+  maxsubscribers = nsubscribers = 0;
+  subscriber = NULL;
+  actions = new Action [N_ACTIONS];
+
+  // Initial allocation
+  maxvariables = nvariables = 0;
+  variables = NULL;
+
+  line = NULL;
+
+  this->serviceName = NULL;
+  this->serviceType = NULL;
+  this->serviceId = NULL;
+}
 
 UPnPService::UPnPService(const char *name, const char *serviceType, const char *serviceId) {
 #ifdef UPNP_DEBUG

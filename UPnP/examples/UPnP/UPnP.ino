@@ -43,8 +43,7 @@ WebServer HTTP(80);
 UPnPDevice device;
 
 void setup() {
-  Serial.begin(9600);   // fits better with putty default
-//  Serial.begin(115200);
+  Serial.begin(9600);
   Serial.println("Sensor system");
   Serial.printf("Boot version %d, flash chip size %d, SDK version %s\n",
                 ESP.getBootVersion(), ESP.getFlashChipSize(), ESP.getSdkVersion());
@@ -124,10 +123,10 @@ void setup() {
   device.setSchemaURL("description.xml");
   device.setHTTPPort(80);
   device.setName("UPnP Motion Sensor Kit");
-  device.setSerialNumber("001788102201");
+  device.setSerialNumber("32302000102");
   device.setURL("index.html");
   device.setModelName("UPnP Motion Sensor Kit");
-  device.setModelNumber("929000226503");
+  device.setModelNumber("32302000102");
   device.setModelURL("http://danny.backx.info");
   device.setManufacturer("Danny Backx");
   device.setManufacturerURL("http://danny.backx.info");

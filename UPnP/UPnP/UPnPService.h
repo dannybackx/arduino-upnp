@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Danny Backx
+ * Copyright (c) 2015, 2016 Danny Backx
  * 
  * License (MIT license):
  *   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -51,6 +51,7 @@ typedef struct {
 class UPnPService {
   public:
     UPnPService(const char *name, const char *serviceType, const char *serviceId);
+    UPnPService();
     ~UPnPService();
 
     // Use the XML to publish a callable action

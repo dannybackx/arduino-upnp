@@ -2,10 +2,12 @@
  * ESP8266 Simple Service Discovery
  *
  * Copyright (c) 2015 Hristo Gochkov
- * Copyright (c) 2015 Danny Backx
+ * Copyright (c) 2015, 2016 Danny Backx
  * 
  * Original (Arduino) version by Filippo Sallemi, July 23, 2014.
  * Can be found at: https://github.com/nomadnt/uSSDP
+ *
+ * Copyright (c) 2016 Danny Backx : almost complete rewrite.
  * 
  * License (MIT license):
  *   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -36,8 +38,8 @@
 #include "lwip/igmp.h"
 #include "include/UdpContext.h"
 
-#undef DEBUG_SSDP
-// #define DEBUG_SSDP  Serial
+// #undef DEBUG_SSDP
+#define DEBUG_SSDP  Serial
 
 #define SSDP_INTERVAL     1200
 #define SSDP_PORT         1900
@@ -134,8 +136,7 @@ bool SSDPClass::begin(UPnPDevice &dev){
   return true;
 }
 
-void SSDPClass::_send(ssdp_method_t method){
-  // char buffer[1460];	// FIXME isn't this too big ?
+void SSDPClass::_send(ssdp_method_t method) {
   char buffer[512];	// FIXME I've seen up to 280 but haven't calculated this
   uint32_t ip = WiFi.localIP();
   
@@ -176,122 +177,124 @@ void SSDPClass::_send(ssdp_method_t method){
 #endif
 
   _server->send(&remoteAddr, remotePort);
-#ifdef DEBUG_SSDPx
-    DEBUG_SSDP.println("After _server->send()");
-#endif
 }
 
-// Called periodically from a timer, once per second
-// Also called when a packet is received on the UDP socket
-void SSDPClass::_update(){
-  // Packet received
-  if(!_pending && _server->next()) {
-    ssdp_method_t method = NONE;
+/*
+ * NOTIFY * HTTP/1.1
+ * HOST:239.255.255.250:1900
+ * CACHE-CONTROL:max-age=1800
+ * LOCATION:http://192.168.1.1:8000/o8ee3npj36j/IGD/upnp/IGD.xml
+ * SERVER:MediaAccess TG 789Ovn Xtream 10.A.0.D UPnP/1.0 (9C-97-26-26-44-DE)
+ * NT:upnp:rootdevice
+ * USN:uuid:c5eb6a02-c0b8-5afe-83da-3965c9516822::upnp:rootdevice
+ * NTS:ssdp:alive
+ * 
+ * M-SEARCH * HTTP/1.1
+ * HOST: 239.255.255.250:1900
+ * MAN: "ssdp:discover"
+ * MX: 10
+ * ST: urn:schemas-upnp-org:device:InternetGatewayDevice:1
+ * 
+ * M-SEARCH * HTTP/1.1
+ * HOST: 239.255.255.250:1900
+ * MAN: "ssdp:discover"
+ * MX: 10
+ * ST: urn:schemas-upnp-org:device:InternetGatewayDevice:1
+ * 
+ * M-SEARCH * HTTP/1.1
+ * HOST: 239.255.255.250:1900
+ * MAN: "ssdp:discover"
+ * MX: 10
+ * ST: urn:schemas-upnp-org:device:InternetGatewayDev
+ *
+ */
 
+// These are the headers detected by the code.
+// Comment them out if we don't need them, will speed up the code.
+struct {
+  const char *header;
+  char *found;
+  int length;
+} headers [] = {
+#define M_SEARCH_HEADER 0
+  { "M-SEARCH", 0, 0},
+#define NOTIFY_HEADER 1
+  { "NOTIFY", 0, 0},
+  { "MAN:", 0, 0 },
+  { "MX:", 0, 0 },
+  { "ST:", 0, 0 },
+  { "USN:", 0, 0 },
+  { "NTS:", 0, 0 },
+  // { "HOST:", 0, 0 },		// This is not interesting information
+  { "LOCATION:", 0, 0 },
+  { 0, 0, 0 }
+};
+
+// Called when a packet is received on the UDP socket
+void SSDPClass::_update() {
+  if(!_pending && _server->next()) {
+    _pending = true;
+
+    // This is picked up by _send()
     _respondToAddr = _server->getRemoteAddress();
     _respondToPort = _server->getRemotePort();
 
-    typedef enum {METHOD, URI, PROTO, KEY, VALUE, ABORT} states;
-    states state = METHOD;
+    int ssdplen = _server->getSize();
 
-    typedef enum {START, MAN, ST, MX} headers;
-    headers header = START;
+    // Allocate a byte extra before and after the message, this makes the rest of the code
+    // work with fewer tests or code duplication.
+    char *buffer = (char *)malloc(ssdplen+2);
+    _server->read(buffer+1, ssdplen);	// FIXME return value ?
+    buffer[0] = '\r';
+    buffer[ssdplen+1] = 0;
 
-    uint8_t cursor = 0;
-    uint8_t cr = 0;		// Count number of CR or NL read
-
-    char buffer[SSDP_BUFFER_SIZE] = {0};
-    
-    while(_server->getSize() > 0){
-      char c = _server->read();
-
-      (c == '\r' || c == '\n') ? cr++ : cr = 0;
-
-      switch(state){
-        case METHOD:
-          if(c == ' '){
-            if(strcmp(buffer, "M-SEARCH") == 0) method = SEARCH;
-            else if(strcmp(buffer, "NOTIFY") == 0) method = NOTIFY;
-            
-            if(method == NONE) state = ABORT;
-            else state = URI; 
-            cursor = 0;
-
-          } else if(cursor < SSDP_METHOD_SIZE - 1){ buffer[cursor++] = c; buffer[cursor] = '\0'; }
-          break;
-        case URI:
-          if(c == ' '){
-            if(strcmp(buffer, "*")) state = ABORT;
-            else state = PROTO; 
-            cursor = 0; 
-          } else if(cursor < SSDP_URI_SIZE - 1){ buffer[cursor++] = c; buffer[cursor] = '\0'; }
-          break;
-        case PROTO:
-          if(cr == 2){ state = KEY; cursor = 0; }
-          break;
-        case KEY:
-          if(cr == 4){ _pending = true; _process_time = millis(); }
-          else if(c == ' '){ cursor = 0; state = VALUE; }
-          else if(c != '\r' && c != '\n' && c != ':' && cursor < SSDP_BUFFER_SIZE - 1){ buffer[cursor++] = c; buffer[cursor] = '\0'; }
-          break;
-        case VALUE:
-          if(cr == 2){
-            switch(header){
-              case MAN:
-#ifdef DEBUG_SSDP
-                DEBUG_SSDP.printf("MAN: %s\n", (char *)buffer);
-#endif
-                break;
-              case ST:
-#if 0
-                if(strcmp(buffer, "ssdp:all")){
-                  state = ABORT;
-#ifdef DEBUG_SSDP
-                  DEBUG_SSDP.printf("REJECT: %s\n", (char *)buffer);
-#endif
-                }
-#endif
-                break;
-              case MX:
-                _delay = random(0, atoi(buffer)) * 1000L;
-                break;
-            }
-
-            if(state != ABORT){ state = KEY; header = START; cursor = 0; }
-          } else if(c != '\r' && c != '\n'){
-            if(header == START){
-              if(strncmp(buffer, "MA", 2) == 0) header = MAN;
-              else if(strcmp(buffer, "ST") == 0) header = ST;
-              else if(strcmp(buffer, "MX") == 0) header = MX;
-            }
-            
-            if(cursor < SSDP_BUFFER_SIZE - 1){ buffer[cursor++] = c; buffer[cursor] = '\0'; }
-          }
-          break;
-        case ABORT:
-          _pending = false; _delay = 0;
-          break;
-      }
+    // Clear pointers
+    for (int i=0; headers[i].header; i++) {
+      headers[i].found = 0;
+      if (headers[i].length == 0)
+        headers[i].length = strlen(headers[i].header);
     }
-  }
 
-  if(_pending && (millis() - _process_time) > _delay){
-    _pending = false; _delay = 0;
-    _send(NONE);
-  } else if(_notify_time == 0 || (millis() - _notify_time) > (SSDP_INTERVAL * 1000L)){
+    // Multi-step packet analysis : first cut into lines, detect headers
+    for (char *p = buffer; *p; p++) {
+      if (*p == '\r' || *p == '\n') {
+        *p = 0;
+      }
+      char *q = p+1;
+      
+      for (int i=0; headers[i].header; i++)
+	if (strncmp(headers[i].header, q, headers[i].length) == 0) {
+	  headers[i].found = q;
+	}
+    }
+
+    // Send a reply
+    if (headers[M_SEARCH_HEADER].found)
+      _send(NONE);
+    else if (headers[NOTIFY_HEADER].found)
+      RegisterNotify();
+
+    // End of processing, throw away buffer
+    free(buffer);
+
+    _pending = false;
+  }
+}
+
+void SSDPClass::EverySecond() {
+  // No packet received, just periodically send out a NOTIFY
+  if (_notify_time == 0 || (millis() - _notify_time) > (SSDP_INTERVAL * 1000L)) {
     _notify_time = millis();
     _send(NOTIFY);
   }
+}
 
-  if (_pending) {
-    while (_server->next())
-      _server->flush();
-  }
-
+void SSDPClass::RegisterNotify() {
+  // Currently not keeping track of devices telling us they're alive
 }
 
 void SSDPClass::_onTimerStatic(SSDPClass* self) {
-  self->_update();
+  self->EverySecond();
 }
 
 // Call the _update method once every second.
