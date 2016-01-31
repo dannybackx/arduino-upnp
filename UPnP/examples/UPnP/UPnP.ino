@@ -6,6 +6,8 @@
 #include <FS.h>
 #include <ESP8266mDNS.h>
 #include <ArduinoOTA.h>
+#include <UPnP/Time.h>
+
 static int OTAprev;
 
 #include <sntp.h>
@@ -41,9 +43,13 @@ char *deviceURN = "urn:schemas-upnp-org:device:ESP8266:1";
 
 WebServer HTTP(80);
 UPnPDevice device;
+Time *theTime = NULL;
 
 void setup() {
   Serial.begin(9600);
+  
+  delay(3000);    // Allow you to plug in the console
+  
   Serial.println("Sensor system");
   Serial.printf("Boot version %d, flash chip size %d, SDK version %s\n",
                 ESP.getBootVersion(), ESP.getFlashChipSize(), ESP.getSdkVersion());
@@ -75,11 +81,16 @@ void setup() {
   Serial.print("MAC "); Serial.print(WiFi.macAddress());
   Serial.printf(", SSID {%s}, IP %s, GW %s\n", WiFi.SSID().c_str(), ips.c_str(), gws.c_str());
 
-  // Set up real time clock
+  theTime = new Time();
+  theTime->begin();
+  
+#if 0
+// Set up real time clock
   sntp_init();
   sntp_setservername(0, "ntp.scarlet.be");
   sntp_setservername(1, "ntp.belnet.be");
   (void)sntp_set_timezone(+1);
+#endif
 
 #ifdef ENABLE_SPIFFS
   SPIFFS.begin();
@@ -182,6 +193,10 @@ void setup() {
   ArduinoOTA.begin();
 #endif
 
+#if 1
+  time_t t = theTime->getTime();
+  Serial.printf("Time is %s", asctime(localtime(&t)));
+#else
   // Wait for a correct time, and report it
   time_t t;
   Serial.printf("Time ");
@@ -192,6 +207,7 @@ void setup() {
     t = sntp_get_current_timestamp();
   }
   Serial.printf(" is %s", asctime(localtime(&t)));
+#endif
 
   Serial.printf("Ready!\n");
   while (1) {

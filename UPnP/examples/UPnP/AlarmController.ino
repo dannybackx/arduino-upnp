@@ -36,7 +36,10 @@ UPnPDevice device;
 
 void setup() {
   Serial.begin(9600);
-  Serial.println("Alarm Controller");
+  
+  delay(3000);    // Allow you to plug in the console
+  
+  Serial.println("\n\nAlarm Controller");
   Serial.printf("Boot version %d, flash chip size %d, SDK version %s\n",
     ESP.getBootVersion(), ESP.getFlashChipSize(), ESP.getSdkVersion());
 
@@ -67,11 +70,13 @@ void setup() {
   Serial.print("MAC "); Serial.print(WiFi.macAddress());
   Serial.printf(", SSID {%s}, IP %s, GW %s\n", WiFi.SSID().c_str(), ips.c_str(), gws.c_str());
 
+#ifdef ENABLE_SNTP
   // Set up real time clock
   sntp_init();
   sntp_setservername(0, "ntp.scarlet.be");
   sntp_setservername(1, "ntp.belnet.be");
   (void)sntp_set_timezone(+1);
+#endif
 
 #ifdef ENABLE_SPIFFS
   SPIFFS.begin();
@@ -129,6 +134,34 @@ void setup() {
   AlarmService alarm = AlarmService();
   UPnP.addService(&alarm);
 
+//  alarm.SendMailSample(25);
+//  alarm.SendMailSample(465);    // This still fails horribly, maybe memory problem ?
+
+#if 0
+{
+  SmtpClient *smtp;
+  byte mailip[] = {193, 74, 71, 25};    // smtp.scarlet.be
+
+#if 1
+  WiFiClient wc;
+  smtp = new SmtpClient(&wc, mailip, 25);
+#else
+  WiFiClientSecure wc;
+  smtp = new SmtpClient(&wc, mailip, 465);
+#endif
+  Mail mail;
+  mail.from("<danny.backx@scarlet.be>");
+  mail.to("<danny.backx@scarlet.be>");
+  mail.subject("Test from arduino, AlarmController line 152");
+  mail.body("Yes I can\n");
+  int r = smtp->send(&mail);
+  Serial.printf("Send mail : %d\n", r);
+  if (r == 0)
+    Serial.printf("Error text %s, line %d\n", smtp->GetErrorText(), smtp->GetErrorLine());
+}
+#endif
+
+
 #ifdef ENABLE_OTA
   Serial.printf("Starting OTA listener ...\n");
   ArduinoOTA.onStart([]() {
@@ -160,6 +193,7 @@ void setup() {
 
 #endif
 
+#ifdef ENABLE_SNTP
   // Wait for a correct time, and report it
   time_t t;
   Serial.printf("Time ");
@@ -170,6 +204,7 @@ void setup() {
     t = sntp_get_current_timestamp();
   }
   Serial.printf(" is %s", asctime(localtime(&t)));
+#endif
 
 #ifdef ENABLE_DISCOVERY_UPNP
   DiscoveryManager dm = DiscoveryManager();
@@ -183,6 +218,36 @@ void setup() {
   
   // ...
 #endif
+
+//  alarm.SendMailSample(25);
+//  alarm.SendMailSample(465);
+  Serial.printf("AlarmController %d free heap %d\n", __LINE__, ESP.getFreeHeap());
+
+#if 1
+{
+  SmtpClient *smtp;
+  byte mailip[] = {193, 74, 71, 25};    // smtp.scarlet.be
+
+#if 1
+  WiFiClient wc;
+  smtp = new SmtpClient(&wc, mailip, 25);
+#else
+  WiFiClientSecure wc;
+  smtp = new SmtpClient(&wc, mailip, 465);
+#endif
+  Mail mail;
+  mail.from("<danny.backx@scarlet.be>");
+  mail.to("<danny.backx@scarlet.be>");
+  mail.subject("Test from arduino, AlarmController line 237");
+  mail.body("Yes I can\n");
+  int r = smtp->send(&mail);
+  Serial.printf("Send mail : %d\n", r);
+  if (r == 0)
+    Serial.printf("Error text %s, line %d\n", smtp->GetErrorText(), smtp->GetErrorLine());
+}
+#endif
+
+
 
   Serial.printf("Ready!\n");
   while (1) {

@@ -31,6 +31,7 @@
 #include "UPnP/AlarmService.h"
 #include "UPnP/WebServer.h"
 
+#include <WiFiClientSecure.h>
 #include <SmtpClient.h>
 #include <Mail.h>
 
@@ -254,16 +255,42 @@ void AlarmService::SetStateHandler() {
   free(tmp1);
 }
 
-void SendMailSample() {
-  // Try sending mail
+void AlarmService::SendMailSample(int port) {
+  SmtpClient *smtp;
   byte mailip[] = {193, 74, 71, 25};	// smtp.scarlet.be
+  // byte mailip[] = {192, 168, 1, 176};	// Local test
+
+  Serial.printf("AlarmService::SendMailSample free heap %d\n", ESP.getFreeHeap());
+#if 1
+  // Regular unsecure connection
   WiFiClient wc;
-  SmtpClient *smtp = new SmtpClient(&wc, mailip);
+  smtp = new SmtpClient(&wc, mailip, 25);
+#else
+  WiFiClientSecure wc;
+  smtp = new SmtpClient(&wc, mailip, 465);
+#endif
+
+/*
+  // Try sending mail
+#if 0
+  WiFiClient *wcp;
+  if (port == 25) {
+    wcp = new WiFiClient;
+    smtp = new SmtpClient(wcp, mailip);
+  } else {
+    wcp = new WiFiClientSecure;
+    smtp = new SmtpClient(wcp, mailip, port);
+  }
+#else
+  WiFiClient wc;
+  smtp = new SmtpClient(&wc, mailip);
+#endif
+/* */
 
   Mail mail;
   mail.from("<danny.backx@scarlet.be>");
   mail.to("<danny.backx@scarlet.be>");
-  mail.subject("Test from arduino");
+  mail.subject("Test from arduino (AlarmService::SendMailSample)");
   mail.body("Yes I can\n");
   int r = smtp->send(&mail);
   Serial.printf("Send mail : %d\n", r);

@@ -35,6 +35,7 @@
 // #define	ENABLE_DHT_SERVICE
 #define	ENABLE_BMP_SERVICE
 #define ENABLE_OTA
+#define ENABLE_SNTP
 
 #include "UPnP/UPnPDevice.h"
 #include "UPnP/SSDP.h"

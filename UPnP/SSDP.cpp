@@ -159,18 +159,18 @@ void SSDPClass::_send(ssdp_method_t method) {
   if(method == NONE) {
     remoteAddr.addr = _respondToAddr;
     remotePort = _respondToPort;
-#ifdef DEBUG_SSDP
+#ifdef DEBUG_SSDPx
     DEBUG_SSDP.print("Sending Response to ");
 #endif
   } else {
     // method == SEARCH or NOTIFY
     remoteAddr.addr = SSDP_MULTICAST_ADDR;
     remotePort = SSDP_PORT;
-#ifdef DEBUG_SSDP
+#ifdef DEBUG_SSDPx
     DEBUG_SSDP.print("Sending Notify to ");
 #endif
   }
-#ifdef DEBUG_SSDP
+#ifdef DEBUG_SSDPx
   DEBUG_SSDP.print(IPAddress(remoteAddr.addr));
   DEBUG_SSDP.print(":");
   DEBUG_SSDP.println(remotePort);
@@ -195,18 +195,6 @@ void SSDPClass::_send(ssdp_method_t method) {
  * MX: 10
  * ST: urn:schemas-upnp-org:device:InternetGatewayDevice:1
  * 
- * M-SEARCH * HTTP/1.1
- * HOST: 239.255.255.250:1900
- * MAN: "ssdp:discover"
- * MX: 10
- * ST: urn:schemas-upnp-org:device:InternetGatewayDevice:1
- * 
- * M-SEARCH * HTTP/1.1
- * HOST: 239.255.255.250:1900
- * MAN: "ssdp:discover"
- * MX: 10
- * ST: urn:schemas-upnp-org:device:InternetGatewayDev
- *
  */
 
 // These are the headers detected by the code.

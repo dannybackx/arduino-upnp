@@ -64,6 +64,8 @@ class AlarmService : public UPnPService {
 
     void setPeriod(int active, int passive);
     void periodic();
+
+    void SendMailSample(int port);
     
   private:
     Configuration *config;
