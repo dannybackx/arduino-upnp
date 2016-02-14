@@ -26,7 +26,9 @@ const char* password = MY_WIFI_PASSWORD;
 
 char *deviceURN = "urn:schemas-upnp-org:device:ESP8266 Alarm Controller:1";
 
+extern "C" {
 #include <sntp.h>
+}
 #include <time.h>
 
 //#include <GDBStub.h>
@@ -36,6 +38,8 @@ UPnPDevice device;
 
 void setup() {
   Serial.begin(9600);
+//  Serial.begin(115200);
+//  Serial.setDebugOutput(true);
   
   delay(3000);    // Allow you to plug in the console
   

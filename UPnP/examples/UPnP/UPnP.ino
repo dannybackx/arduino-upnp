@@ -6,12 +6,13 @@
 #include <FS.h>
 #include <ESP8266mDNS.h>
 #include <ArduinoOTA.h>
+
+#define TIME_CLASS
 #include <UPnP/Time.h>
 
-static int OTAprev;
+#include <Wire.h>
 
-#include <sntp.h>
-#include <time.h>
+static int OTAprev;
 
 #include "MotionSensorService.h"
 #include "UPnP/LEDService.h"
@@ -23,6 +24,8 @@ static int OTAprev;
 #endif
 
 #include <SmtpClient.h>
+
+#include <UPnP/DS3231.h>
 
 // #include "GDBStub.h"
 
@@ -43,7 +46,9 @@ char *deviceURN = "urn:schemas-upnp-org:device:ESP8266:1";
 
 WebServer HTTP(80);
 UPnPDevice device;
+#ifdef TIME_CLASS
 Time *theTime = NULL;
+#endif
 
 void setup() {
   Serial.begin(9600);
@@ -81,10 +86,10 @@ void setup() {
   Serial.print("MAC "); Serial.print(WiFi.macAddress());
   Serial.printf(", SSID {%s}, IP %s, GW %s\n", WiFi.SSID().c_str(), ips.c_str(), gws.c_str());
 
+#ifdef TIME_CLASS
   theTime = new Time();
   theTime->begin();
-  
-#if 0
+#else
 // Set up real time clock
   sntp_init();
   sntp_setservername(0, "ntp.scarlet.be");
@@ -193,7 +198,7 @@ void setup() {
   ArduinoOTA.begin();
 #endif
 
-#if 1
+#ifdef TIME_CLASS
   time_t t = theTime->getTime();
   Serial.printf("Time is %s", asctime(localtime(&t)));
 #else
@@ -210,6 +215,15 @@ void setup() {
 #endif
 
   Serial.printf("Ready!\n");
+
+
+  // theTime->test();
+  DS3231 *rtc = new DS3231();
+  rtc->test();
+#ifdef ENABLE_BMP_SERVICE
+  Serial.printf("BMP180 : temperature %s pressure %s\n", bmp.GetTemperature(), bmp.GetPressure());
+#endif
+
   while (1) {
     ms_srv.poll();
     HTTP.handleClient();

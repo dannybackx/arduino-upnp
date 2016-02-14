@@ -25,14 +25,25 @@
 #include <UPnP/Time.h>
 #include <UPnP/Configuration.h>
 
+extern "C" {
 #include <sntp.h>
 #include <time.h>
+}
 
-const static int max_count = 10;
+#include <Wire.h>
+
+#define	DEBUG	Serial
+
+// const static int max_count = 10;
 const static int initial_delay = 1000;
+// const static int timezone = +1;
 
-Time::Time()
-{
+int max_count, timezone;
+char *ntp1, *ntp2;
+
+Time::Time() {
+  // DEBUG.println("Time CTOR");
+  timeSource = TIME_SOURCE_NONE;
 }
 
 Time::~Time() {
@@ -42,25 +53,29 @@ Time::~Time() {
 }
 
 void Time::begin() {
-#if 0
   config = new Configuration("Time",
-    new ConfigurationItem("code", "1234"),
-    // new ConfigurationItem(mail, 1),			// FIXME
-    new ConfigurationItem("from", ""),
-    new ConfigurationItem("to", ""),
+    new ConfigurationItem("maxcount", 10),
+    new ConfigurationItem("ntp1", "ntp.scarlet.be"),
+    new ConfigurationItem("ntp2", "ntp.belnet.be"),
+    new ConfigurationItem("timezone", 1),
     NULL);
-  //UPnPService::begin(config);
-  alarmpin = config->GetValue("pin");
-#endif
 
-#ifdef DEBUG
-  DEBUG.printf("Time::begin (pin %d)\n", alarmpin);
+  max_count = config->GetValue("maxcount");
+  ntp1 = (char *)config->GetStringValue("ntp1");
+  ntp2 = (char *)config->GetStringValue("ntp2");
+  timezone = config->GetValue("timezone");
+
+#if 0
+  //UPnPService::begin(config);
+  //alarmpin = config->GetValue("pin");
 #endif
 
   sntp_init();
-  sntp_setservername(0, "ntp.scarlet.be");
-  sntp_setservername(1, "ntp.belnet.be");
-  (void)sntp_set_timezone(+1);
+  sntp_setservername(0, ntp1);
+  sntp_setservername(1, ntp2);
+  (void)sntp_set_timezone(timezone);
+
+  // Wire.begin();
 }
 
 /*
@@ -81,3 +96,15 @@ time_t Time::getTime() {
   }
   return t;
 }
+
+#if 0
+#define	DS3232RTC_I2C_ADDR	0x68
+
+/* Addresses in DS3232 */
+#define	DS3232_ADDR_RTC_SECONDS	0x00
+#define	DS3232_ADDR_RTC_MINUTES	0x01
+
+#define	DS1307_CLOCKHALT	7
+#define	DS3232_12HRCLOCK	6
+#define	DS3232_CENTURY		7
+#endif

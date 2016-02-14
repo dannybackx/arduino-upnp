@@ -1,5 +1,5 @@
 /*
- * Provide the time.
+ * Interface to the DS3231 chip (real time clock, oscillator, temperature sensor).
  * 
  * Copyright (c) 2016 Danny Backx
  * 
@@ -22,32 +22,32 @@
  *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *   THE SOFTWARE.
  */
-#ifndef _INCLUDE_TIME_H_
-#define _INCLUDE_TIME_H_
-
 #include <Arduino.h>
-#include <UPnP/Configuration.h>
+#include <time.h>
 
-enum TimeSource {
-  TIME_SOURCE_NONE,
-  TIME_SOURCE_NTP,
-  TIME_SOURCE_RTC,
-  TIME_SOURCE_NETWORK	// from a friend ?
+#define	DS3232RTC_I2C_ADDR	0x68
+
+/* Addresses in DS3232 */
+#define	DS3232_ADDR_RTC_SECONDS	0x00
+#define	DS3232_ADDR_RTC_MINUTES	0x01
+
+#define	DS1307_CLOCKHALT	7
+#define	DS3232_12HRCLOCK	6
+#define	DS3232_CENTURY		7
+
+class DS3231 {
+public:
+  DS3231();
+  ~DS3231();
+private:
+  byte ReadRange(byte addr, byte *values, byte n);
+  byte ReadRTC(struct tm &tm);
+  uint8_t dec2bcd(uint8_t n);
+  uint8_t bcd2dec(uint8_t n);
+
+public:
+  void begin();
+  void test();
+  void SetRTC(time_t now);
+  void GetTemperature();
 };
-
-class Time {
-  public:
-    Time();
-    ~Time();
-
-    void begin();
-    time_t getTime();
-    TimeSource getTimeSource();
-    void test();
-    void getTemperature();
-    
-  private:
-    Configuration *config;
-    TimeSource timeSource;
-};
-#endif /* _INCLUDE_TIME_H_ */
