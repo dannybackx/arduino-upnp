@@ -95,6 +95,10 @@ BMP180SensorService::BMP180SensorService() :
   addStateVariable(temperatureString, stringString, true);
   addStateVariable(pressureString, stringString, true);
   addStateVariable(percentageString, stringString, false);
+  inited = false;
+  oldTemperature = 0;
+  oldPressure = 0;
+  count = 0;
 }
 
 BMP180SensorService::BMP180SensorService(const char *deviceURN) :
@@ -105,6 +109,10 @@ BMP180SensorService::BMP180SensorService(const char *deviceURN) :
   addStateVariable(temperatureString, stringString, true);
   addStateVariable(pressureString, stringString, true);
   addStateVariable(percentageString, stringString, false);
+  inited = false;
+  oldTemperature = 0;
+  oldPressure = 0;
+  count = 0;
 }
 
 BMP180SensorService::BMP180SensorService(const char *serviceType, const char *serviceId) :
@@ -115,6 +123,10 @@ BMP180SensorService::BMP180SensorService(const char *serviceType, const char *se
   addStateVariable(temperatureString, stringString, true);
   addStateVariable(pressureString, stringString, true);
   addStateVariable(percentageString, stringString, false);
+  inited = false;
+  oldTemperature = 0;
+  oldPressure = 0;
+  count = 0;
 }
 
 BMP180SensorService::~BMP180SensorService() {
@@ -138,12 +150,14 @@ void BMP180SensorService::begin() {
   percentage = config->GetValue(percentageString);
 
   bmp = new SFE_BMP180();
-  bmp->begin();
+  char ok = bmp->begin();
 }
 
 // Return true if a noticable difference
 bool BMP180SensorService::Difference(float oldval, float newval) {
   float cmp1, cmp2;
+  if (isnan(oldval) || isnan(newval) || isinf(oldval) || isinf(newval))
+    return true;
   if (oldval == 0 && newval == 0)
     return false;
   if (oldval == 0)
@@ -152,26 +166,30 @@ bool BMP180SensorService::Difference(float oldval, float newval) {
     cmp1 = oldval;
   cmp2 = ((oldval - newval) / cmp1) * 100;
 #ifdef DEBUGx
-  DEBUG.print("Difference ");
-  DEBUG.print(cmp2);
-  DEBUG.print(" = ");
-  DEBUG.print(oldval);
-  DEBUG.print(" - ");
-  DEBUG.print(newval);
-  DEBUG.print(" / ");
-  DEBUG.print(cmp1);
-  DEBUG.print(" * 100");
+  if (count < 3) {
+    DEBUG.print("Difference ");
+    DEBUG.print(cmp2);
+    DEBUG.print(" = ");
+    DEBUG.print(oldval);
+    DEBUG.print(" - ");
+    DEBUG.print(newval);
+    DEBUG.print(" / ");
+    DEBUG.print(cmp1);
+    DEBUG.print(" * 100");
+  }
 #endif
 
   if (cmp2 < 0)
     cmp2 = -cmp2;
   if (percentage < cmp2) {
 #ifdef DEBUGx
+  if (count < 3)
     DEBUG.println(" --> true");
 #endif
     return true;
   }
 #ifdef DEBUGx
+  if (count < 3)
   DEBUG.println(" --> false");
 #endif
   return false;
@@ -184,45 +202,84 @@ bool BMP180SensorService::Difference(float oldval, float newval) {
  * (Working with float readings requires something like this.)
  */
 void BMP180SensorService::poll() {
+  bool diff = false, nan = false;
+  
+  count++;
+
   oldTemperature = newTemperature;
   oldPressure = newPressure;
 
   // This is a multi-part query to the I2C device, see the SFE_BMP180 source files.
-  char d = bmp->startTemperature();
-  delay(d);
-  d = bmp->getTemperature(newTemperature);
-  d = bmp->startPressure(0);
-  delay(d);
-  d = bmp->getPressure(newPressure, newTemperature);
-
-  if (isnan(newTemperature) || isnan(newPressure)) {
-    newTemperature = oldTemperature;
-    newPressure = oldPressure;
+  char d1 = bmp->startTemperature();
+  delay(d1);
+  char d2 = bmp->getTemperature(newTemperature);
+  if (d2 == 0) { // Error communicating with device
+#ifdef DEBUG
+    DEBUG.printf("BMP180 : communication error (temperature)\n");
+#endif
     return;
   }
+
+  char d3 = bmp->startPressure(0);
+  delay(d3);
+  char d4 = bmp->getPressure(newPressure, newTemperature);
+  if (d4 == 0) { // Error communicating with device
+#ifdef DEBUG
+    DEBUG.printf("BMP180 : communication error (pressure)\n");
+#endif
+    return;
+  }
+
+  if (isnan(newTemperature) || isinf(newTemperature)) {
+    newTemperature = oldTemperature;
+    nan = true;
+  }
+  if (isnan(newPressure) || isinf(newPressure)) {
+    newPressure = oldPressure;
+    nan = true;
+  }
+  if (nan) {
+#ifdef DEBUG
+    DEBUG.println("BMP180 nan");
+#endif
+    return;
+  }
+
+  // Only do this if we really have non-nan values
+  inited = true;
 
   if (Difference(oldTemperature, newTemperature)) {
     UpdateTemperature();
     SendNotify(temperatureString);
+    diff = true;
   }
   if (Difference(oldPressure, newPressure)) {
     UpdatePressure();
     SendNotify(pressureString);
+    diff = true;
+  }
 
 #ifdef DEBUG
-  DEBUG.print("BMP180 : Temp ");
-  DEBUG.print(newTemperature);
-  DEBUG.print(" Pressure ");
-  DEBUG.println(newPressure);
-#endif
+  if (diff) {
+    DEBUG.print("BMP180 : Temp ");
+    DEBUG.print(newTemperature);
+    DEBUG.print(" Pressure ");
+    DEBUG.println(newPressure);
   }
+#endif
 }
 
 const char *BMP180SensorService::GetTemperature() {
+  if (! inited)
+    poll();	// try once
+
   return temperature;
 }
 
 const char *BMP180SensorService::GetPressure() {
+  if (! inited)
+    poll();	// try once
+
   return pressure;
 }
 
@@ -235,20 +292,28 @@ static void GetVersion() {
 
 // Example of a member function to handle UPnP requests : this can access stuff in the class
 void BMP180SensorService::GetPressureHandler() {
+  // Calculate buffer lengths
   int l2 = strlen(gsh_template) + strlen(myServiceType) + BMP180_STATE_LENGTH * 2,
       l1 = strlen(UPnPClass::envelopeHeader) + l2 + strlen(UPnPClass::envelopeTrailer) + 5;
+
+  // Allocate buffers accordingly
   char *tmp2 = (char *)malloc(l2),
        *tmp1 = (char *)malloc(l1);
+
 #ifdef DEBUG
   DEBUG.println("BMP180SensorService::GetPressureHandler");
-  delay(1000);
 #endif
+
+  // String manipulation, prepare our answer
   strcpy(tmp1, UPnPClass::envelopeHeader);
-  sprintf(tmp2, gsh_template, myServiceType,
-    BMP180SensorService::temperature, BMP180SensorService::pressure);
+  //UpdateTemperature();
+  //UpdatePressure();
+  sprintf(tmp2, gsh_template, myServiceType, temperature, pressure);
   strcat(tmp1, tmp2);
   free(tmp2);
   strcat(tmp1, UPnPClass::envelopeTrailer);
+
+  // Send answer
   HTTP.send(200, UPnPClass::mimeTypeXML, tmp1);
   free(tmp1);
 }

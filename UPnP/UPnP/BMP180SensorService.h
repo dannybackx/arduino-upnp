@@ -48,6 +48,8 @@ class BMP180SensorService : public UPnPService {
     
   private:
     Configuration *config;
+    bool inited;
+    int count;
 
     char temperature[BMP180_STATE_LENGTH], pressure[BMP180_STATE_LENGTH];
     WebServer *http;
