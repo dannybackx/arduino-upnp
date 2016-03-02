@@ -4,9 +4,10 @@
  * UPnP commands/queries can be used from an application or a script.
  * This service represents the DHT-11 / DHT-22 temperature and humidity sensor.
  *
- * To be used with Adafruit's DHT sensor library https://github.com/adafruit/DHT-sensor-library .
+ * To be used with Rob Tillaart's DHTlib
+ *   (https://github.com/RobTillaart/Arduino/tree/master/libraries/DHTlib).
  * 
- * Copyright (c) 2015 Danny Backx
+ * Copyright (c) 2015, 2016 Danny Backx
  * 
  * License (MIT license):
  *   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -30,15 +31,14 @@
 
 #include "UPnP.h"
 #include "UPnP/UPnPService.h"
-#include "DHT.h"
+#include "dht.h"
 #include "UPnP/DHTSensorService.h"
 #include "UPnP/WebServer.h"
 
 extern WebServer HTTP;
 static void GetVersion();
 
-#define DEBUG Serial
-// const int sensor = 12;   // D6 GPIO12
+// #define DEBUG Serial
 
 // Printf style template, parameters : serviceType, state
 static const char *gsh_template = "<u:GetStateResponse xmlns=\"%s\">\r\n<State>%s</State>\r\n</u:GetStateResponse>\r\n";
@@ -104,8 +104,6 @@ DHTSensorService::DHTSensorService(const char *serviceType, const char *serviceI
   addStateVariable(stateString, stringString, true);
 }
 
-DHT *dht;
-
 DHTSensorService::~DHTSensorService() {
 #ifdef DEBUG
   DEBUG.println("DHTSensorService DTOR");
@@ -126,21 +124,63 @@ void DHTSensorService::begin() {
   sensorpin = config->GetValue("pin");
   sensortype = config->GetValue("type");
 
-  dht = new DHT(sensorpin, sensortype);
-  dht->begin();
+  sensor = new dht();
 
 #ifdef DEBUG
   DEBUG.printf("DHT::begin (sensor pin %d, type DHT-%d)\n", sensorpin, sensortype);
 #endif
 }
 
+int inited = 0;
+
 void DHTSensorService::poll() {
+  int check = sensor->read11(sensorpin);
+
+#ifdef DEBUG
+  switch (check) {
+    case DHTLIB_OK:
+      Serial.print("OK,\t");
+      break;
+    case DHTLIB_ERROR_CHECKSUM:
+      Serial.print("Checksum error,\t");
+      break;
+    case DHTLIB_ERROR_TIMEOUT:
+      Serial.print("Time out error,\t");
+      break;
+    case DHTLIB_ERROR_CONNECT:
+      Serial.print("Connect error,\t");
+      break;
+    case DHTLIB_ERROR_ACK_L:
+      Serial.print("Ack Low error,\t");
+      break;
+    case DHTLIB_ERROR_ACK_H:
+      Serial.print("Ack High error,\t");
+      break;
+    default:
+      Serial.print("Unknown error,\t");
+      break;
+  }
+#endif
+
+  if (check != DHTLIB_OK)
+    return;
+
   oldtemperature = newtemperature;
   oldhumidity = newhumidity;
 
-  newtemperature = dht->readTemperature(false);
-  newhumidity = dht->readHumidity(false);
-  float fahr = dht->readTemperature(true);
+  newtemperature = sensor->temperature;
+  newhumidity = sensor->humidity;
+
+  if (inited <= 3) {
+    inited++;
+#ifdef DEBUG
+    DEBUG.print("DHT: temp ");
+    DEBUG.print(newtemperature);
+    DEBUG.print(" °C");
+    DEBUG.print(", humidity ");
+    DEBUG.println(newhumidity);
+#endif
+  }
 
   if (isnan(newtemperature) || isnan(newhumidity)) {
     newtemperature = oldtemperature;
@@ -152,17 +192,13 @@ void DHTSensorService::poll() {
     sprintf(state, "%d", newtemperature);
 
     SendNotify("State");
-
-  // Serial.printf("DHT: temp %f\n", temp);
-  Serial.print("DHT: temp ");
-  Serial.print(newtemperature);
-  // Serial.print(" °C, humidity ");
-  Serial.print(" °C");
-  Serial.print(", ");
-  Serial.print(fahr);
-  Serial.print(" °F");
-  Serial.print(", humidity ");
-  Serial.println(newhumidity);
+#ifdef DEBUG
+    DEBUG.print("DHT: temp ");
+    DEBUG.print(newtemperature);
+    DEBUG.print(" °C");
+    DEBUG.print(", humidity ");
+    DEBUG.println(newhumidity);
+#endif
   }
 }
 
@@ -173,6 +209,9 @@ const char *DHTSensorService::GetState() {
 // Example of a static function to handle UPnP requests : only access to global variables here.
 static void GetVersion() {
   char msg[128];
+#ifdef DEBUG
+  DEBUG.println("DHTSensorService::GetVersion");
+#endif
   sprintf(msg, versionTemplate, versionFileInfo, versionDateInfo, versionTimeInfo);
   HTTP.send(200, UPnPClass::mimeTypeXML, msg);
 }

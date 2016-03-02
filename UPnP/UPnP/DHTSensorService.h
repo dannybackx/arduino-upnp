@@ -4,7 +4,7 @@
  * UPnP commands/queries can be used from an application or a script.
  * This service represents the DHT-11 temperature and humidity sensor.
  *  
- * Copyright (c) 2015 Danny Backx
+ * Copyright (c) 2015, 2016 Danny Backx
  * 
  * License (MIT license):
  *   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -31,6 +31,7 @@
 #include "UPnP.h"
 #include "UPnP/UPnPService.h"
 #include <UPnP/WebServer.h>
+#include "dht.h"
 
 #define DHT_STATE_LENGTH	16
 #define	DHT_SENSOR_PIN_DEFAULT	12
@@ -50,6 +51,7 @@ class DHTSensorService : public UPnPService {
     
   private:
     Configuration *config;
+    dht *sensor;
 
     int sensorpin, sensortype;
     char state[DHT_STATE_LENGTH];
