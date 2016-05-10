@@ -47,3 +47,10 @@ This is the output of the example that does produce sensible XML :
   &lt;/s:Envelope&gt;
 </code></pre>
 The only hardware you need for this is an ESP8266 device and a motion sensor.
+
+You can build this application via the Makefiles supplied, or from the regular Arduino IDE.
+Either way, you'll need to supply a file called <pre>mywifi.h</pre> in each application directory, with contents such as
+<pre><code>
+  #define MY_SSID "my-wifi-ssid"
+  #define MY_WIFI_PASSWORD "secret"
+</code></pre>
