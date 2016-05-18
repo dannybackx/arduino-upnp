@@ -32,15 +32,23 @@
 #include <ArduinoOTA.h>
 
 #define TIME_CLASS
-// #define TIME_SNTP
+
+extern "C" {
+// To increase number of TCP sockets
+#ifdef LWIP_OPEN_SRC
+#include "lwip/ip_addr.h"
+#else
+#include "ip_addr.h"
+#endif
+#include <espconn.h>
+#ifdef ENABLE_SNTP
+#include <sntp.h>
+#endif
+#include <time.h>
+}
 
 #ifdef TIME_CLASS
 #include <UPnP/GetTime.h>
-#endif
-#ifdef TIME_SNTP
-extern "C" {
-#include <sntp.h>
-}
 #endif
 #include "Timezone.h"
 
@@ -123,11 +131,20 @@ void setup() {
   Serial.print("MAC "); Serial.print(WiFi.macAddress());
   Serial.printf(", SSID {%s}, IP %s, GW %s\n", WiFi.SSID().c_str(), ips.c_str(), gws.c_str());
 
+  // Set allowed TCP sockets to the maximum
+  sint8 rc = espconn_tcp_set_max_con(15);
+  if (rc < 0) {
+    Serial.println("Failed to increase #TCP connections");
+  } else {
+    uint8 mc = espconn_tcp_get_max_con();
+    Serial.printf("TCP connection limit set to %d\n", mc);
+  }
+
 #ifdef TIME_CLASS
   theTime = new GetTime();
   theTime->begin();
 #endif
-#ifdef TIME_SNTP
+#ifdef ENABLE_SNTP
 // Set up real time clock
   sntp_init();
   sntp_setservername(0, "ntp.scarlet.be");
@@ -240,7 +257,7 @@ void setup() {
   time_t t = theTime->getTime();
   Serial.printf("Time is %s", asctime(localtime(&t)));
 #endif
-#ifdef TIME_SNTP
+#ifdef ENABLE_SNTP
   {
     // Wait for a correct time, and report it
     time_t t;

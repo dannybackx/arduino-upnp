@@ -7,6 +7,20 @@
 #include <FS.h>
 #include <UPnP/AlarmService.h>
 
+extern "C" {
+// To increase number of TCP sockets
+#ifdef LWIP_OPEN_SRC
+#include "lwip/ip_addr.h"
+#else
+#include "ip_addr.h"
+#endif
+#include <espconn.h>
+#ifdef ENABLE_SNTP
+#include <sntp.h>
+#endif
+#include <time.h>
+}
+
 #define ENABLE_DISCOVERY_UPNP
 
 // Prepare for OTA software installation
@@ -25,11 +39,6 @@ const char* ssid     = MY_SSID;
 const char* password = MY_WIFI_PASSWORD;
 
 char *deviceURN = "urn:schemas-upnp-org:device:ESP8266 Alarm Controller:1";
-
-extern "C" {
-#include <sntp.h>
-}
-#include <time.h>
 
 //#include <GDBStub.h>
 
@@ -76,6 +85,15 @@ void setup() {
   String gws = gw.toString();
   Serial.print("MAC "); Serial.print(WiFi.macAddress());
   Serial.printf(", SSID {%s}, IP %s, GW %s\n", WiFi.SSID().c_str(), ips.c_str(), gws.c_str());
+
+  // Set allowed TCP sockets to the maximum
+  sint8 rc = espconn_tcp_set_max_con(15);
+  if (rc < 0) {
+    Serial.println("Failed to increase #TCP connections");
+  } else {
+    uint8 mc = espconn_tcp_get_max_con();
+    Serial.printf("TCP connection limit set to %d\n", mc);
+  }
 
 #ifdef ENABLE_SNTP
   // Set up real time clock
@@ -204,6 +222,7 @@ void setup() {
   UPNP_DISPLAY.begin();
 
   Serial.printf("Ready!\n");
+
   while (1) {
     HTTP.handleClient();
 #ifdef ENABLE_OTA
