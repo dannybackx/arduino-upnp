@@ -35,8 +35,7 @@ char SFE_BMP180::begin()
 	double c3,c4,b1;
 	
 	// Start up the Arduino's "wire" (I2C) library:
-	
-	Wire.begin();
+	// Wire.begin();
 
 	// The BMP180 includes factory calibration data stored on the device.
 	// Each device has different numbers, these must be retrieved and

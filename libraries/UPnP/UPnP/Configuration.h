@@ -44,7 +44,7 @@ public:
   ConfigurationItem(const char *name, const char *value);
   const char *GetName();
   int GetValue();
-  const char *GetStringValue();
+  char *GetStringValue();
   enum ValueType GetType();
   void SetValue(int v);
   void SetValue(char *v);
@@ -60,7 +60,7 @@ public:
   ConfigurationItem *GetItem(const char *itemname);
   const char *GetName();
   int GetValue(const char *name);
-  const char *GetStringValue(const char *name);
+  char *GetStringValue(const char *name);
   bool configured(const char *name);
 };
 #endif /* _UPNP_CONFIGURATION_READER_H_ */

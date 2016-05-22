@@ -2,9 +2,15 @@
  * This is a sample of a UPnP service that runs on a IoT device.
  * 
  * UPnP commands/queries can be used from an application or a script.
+ *
  * This service is an Alarm output.
+ * It gathers input from sensors and sends signal upon input when armed.
+ * So it keeps track of whether it is armed, and either safe or in alarm,
+ * but not much else.
+ * Authentication of RFID or validation of the code entered on a keypad
+ * is not the scope of this module.
  *  
- * Copyright (c) 2015 Danny Backx
+ * Copyright (c) 2016 Danny Backx
  * 
  * License (MIT license):
  *   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -70,8 +76,10 @@ class AlarmService : public UPnPService {
   private:
     Configuration *config;
 
-    //
+    // This is the digital output pin that we use to trigger alarm hardware (siren, lights, ..).
     int alarmpin;
+
+    // Our state
     enum AlarmState state;
     int count, passive, active;		// FIXME from LED
 
@@ -80,7 +88,7 @@ class AlarmService : public UPnPService {
     char *from, *to;
 
     // Alarm controller
-    char *code;				// Unlock code
+    // char *code;				// Unlock code
 };
 
 #define ALARM_GLOBAL

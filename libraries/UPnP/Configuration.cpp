@@ -187,11 +187,11 @@ const char *ConfigurationItem::GetName() {
 
 int Configuration::GetValue(const char *name) {
   if (name == NULL) {
-    return NULL;
+    return 0;
   }
   ConfigurationItem *ci = GetItem(name);
   if (ci == NULL) {
-    return NULL;
+    return 0;
   }
   return ci->GetValue();
 }
@@ -212,15 +212,15 @@ void ConfigurationItem::SetValue(int v) {
   ivalue = v;
 }
 
-const char *Configuration::GetStringValue(const char *name) {
+char *Configuration::GetStringValue(const char *name) {
   ConfigurationItem *ci = GetItem(name);
   if (ci)
     return ci->GetStringValue();
   return NULL;
 }
 
-const char *ConfigurationItem::GetStringValue() {
-  return svalue;
+char *ConfigurationItem::GetStringValue() {
+  return (char *)svalue;
 }
 
 enum ValueType ConfigurationItem::GetType() {

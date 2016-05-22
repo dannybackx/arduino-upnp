@@ -94,6 +94,7 @@ bool SSDPClass::begin(UPnPDevice &dev){
   device = dev;
   
   uint32_t chipId = ESP.getChipId();
+  //                      8 2 6 6  E X  D
   sprintf(device._uuid, "38323636-4558-4dda-9188-cda0e6%02x%02x%02x",
     (uint16_t) ((chipId >> 16) & 0xff),
     (uint16_t) ((chipId >>  8) & 0xff), 

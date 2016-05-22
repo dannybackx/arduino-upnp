@@ -42,6 +42,7 @@ class BMP180SensorService : public UPnPService {
     ~BMP180SensorService();
     void begin();
     const char *GetTemperature(), *GetPressure();
+    const float GetFloatTemperature(), GetFloatPressure();
     void GetPressureHandler();
 
     void poll();            // periodically poll the sensor

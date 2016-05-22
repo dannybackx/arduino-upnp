@@ -260,7 +260,6 @@ void AlarmService::SendMailSample(int port) {
   byte mailip[] = {193, 74, 71, 25};	// smtp.scarlet.be
   // byte mailip[] = {192, 168, 1, 176};	// Local test
 
-  Serial.printf("AlarmService::SendMailSample free heap %d\n", ESP.getFreeHeap());
 #if 1
   // Regular unsecure connection
   WiFiClient wc;
@@ -270,23 +269,7 @@ void AlarmService::SendMailSample(int port) {
   smtp = new SmtpClient(&wc, mailip, 465);
 #endif
 
-/*
   // Try sending mail
-#if 0
-  WiFiClient *wcp;
-  if (port == 25) {
-    wcp = new WiFiClient;
-    smtp = new SmtpClient(wcp, mailip);
-  } else {
-    wcp = new WiFiClientSecure;
-    smtp = new SmtpClient(wcp, mailip, port);
-  }
-#else
-  WiFiClient wc;
-  smtp = new SmtpClient(&wc, mailip);
-#endif
-/* */
-
   Mail mail;
   mail.from("<danny.backx@scarlet.be>");
   mail.to("<danny.backx@scarlet.be>");

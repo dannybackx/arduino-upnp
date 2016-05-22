@@ -59,6 +59,16 @@ byte DS3231::ReadRange(byte addr, byte *values, byte n)
 /*
  * Reads the current time from the RTC and returns it in a struct tm.
  * Returns zero if successful (based on I2C status).
+ *
+ * Returns byte, which indicates the status of the transmission:
+ *
+ * Wire library's return value is :
+ * 0:success
+ * 1:data too long to fit in transmit buffer
+ * 2:received NACK on transmit of address
+ * 3:received NACK on transmit of data
+ * 4:other error
+ *
  */
 byte DS3231::ReadRTC(struct tm &tm)
 {
@@ -68,6 +78,7 @@ byte DS3231::ReadRTC(struct tm &tm)
 
   // Get 7 bytes as described in the DS3231 datasheet
   char error = ReadRange(0, values, 7);
+#if 0
   Serial.printf("RTC return %d\n", error);
   for (i=0; i<7; i++)
     Serial.printf(" %d ", values[i]);
@@ -75,7 +86,7 @@ byte DS3231::ReadRTC(struct tm &tm)
   for (i=0; i<7; i++)
     Serial.printf(" %2x ", values[i]);
   Serial.printf(")\n");
-
+#endif
   // Convert from hardware registers into struct tm
   tm.tm_sec = bcd2dec(values[0]);
   tm.tm_min = bcd2dec(values[1]);
@@ -110,20 +121,21 @@ uint8_t DS3231::bcd2dec(uint8_t n)
 
 void DS3231::test()
 {
-  Serial.println("Time::test()");
+  // Serial.println("Time::test()");
 
   struct tm tm;
   char error = ReadRTC(tm);
 
-  Serial.printf("%s\n", asctime(&tm));
-  // SetRTC();
+  Serial.printf("DS3231 RTC : time is %s", asctime(&tm));
+  // SetRTC(tm);
   GetTemperature();
 }
 
 void DS3231::SetRTC(time_t now)
 {
-  // Get the official stuff
   struct tm *tmnow = localtime(&now);
+
+  // Get the official stuff
   Serial.printf("%d %d %d xx %d %d %d\n",
     tmnow->tm_sec, tmnow->tm_min, tmnow->tm_hour, tmnow->tm_mday, tmnow->tm_mon, tmnow->tm_year);
 
@@ -141,6 +153,9 @@ void DS3231::SetRTC(time_t now)
   Serial.printf("RTC write error code %d\n", werror);
 }
 
+/*
+ * This is not very accurate.
+ */
 void DS3231::GetTemperature()
 {
   unsigned char values[4];

@@ -4,7 +4,7 @@
  * UPnP commands/queries can be used from an application or a script.
  * This service represents the BMP180 barometric pressure and temperature sensor.
  *
- * Copyright (c) 2015 Danny Backx
+ * Copyright (c) 2015, 2016 Danny Backx
  * 
  * License (MIT license):
  *   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -35,6 +35,7 @@
 extern WebServer HTTP;
 static void GetVersion();
 
+#define VERBOSE	Serial
 #undef DEBUG
 // #define DEBUG Serial
 
@@ -136,9 +137,6 @@ BMP180SensorService::~BMP180SensorService() {
 }
 
 void BMP180SensorService::begin() {
-#ifdef DEBUG
-  DEBUG.println("BMP180SensorService::begin");
-#endif
   temperature[0] = 0;
   pressure[0] = 0;
 
@@ -148,6 +146,10 @@ void BMP180SensorService::begin() {
     NULL);
   UPnPService::begin(config);
   percentage = config->GetValue(percentageString);
+
+#ifdef DEBUG
+  DEBUG.printf("BMP180SensorService::begin (%d %%)\n", percentage);
+#endif
 
   bmp = new SFE_BMP180();
   char ok = bmp->begin();
@@ -247,6 +249,8 @@ void BMP180SensorService::poll() {
 
   // Only do this if we really have non-nan values
   inited = true;
+    UpdateTemperature();
+    UpdatePressure();
 
   if (Difference(oldTemperature, newTemperature)) {
     UpdateTemperature();
@@ -259,7 +263,14 @@ void BMP180SensorService::poll() {
     diff = true;
   }
 
-#ifdef DEBUG
+#ifdef VERBOSE
+  if (diff) {
+    VERBOSE.print("BMP180 : temperature ");
+    VERBOSE.print(newTemperature);
+    VERBOSE.print(" pressure ");
+    VERBOSE.println(newPressure);
+  }
+#elif defined(DEBUG)
   if (diff) {
     DEBUG.print("BMP180 : Temp ");
     DEBUG.print(newTemperature);
@@ -269,11 +280,25 @@ void BMP180SensorService::poll() {
 #endif
 }
 
+const float BMP180SensorService::GetFloatTemperature() {
+  if (! inited)
+    poll();	// try once
+
+  return newTemperature;
+}
+
 const char *BMP180SensorService::GetTemperature() {
   if (! inited)
     poll();	// try once
 
   return temperature;
+}
+
+const float BMP180SensorService::GetFloatPressure() {
+  if (! inited)
+    poll();	// try once
+
+  return newPressure;
 }
 
 const char *BMP180SensorService::GetPressure() {
