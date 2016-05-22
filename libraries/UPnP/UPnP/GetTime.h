@@ -35,10 +35,10 @@ enum TimeSource {
   TIME_SOURCE_NETWORK	// from a friend ?
 };
 
-class Time {
+class GetTime {
   public:
-    Time();
-    ~Time();
+    GetTime();
+    ~GetTime();
 
     void begin();
     time_t getTime();

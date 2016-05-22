@@ -22,7 +22,7 @@
  *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *   THE SOFTWARE.
  */
-#include <UPnP/Time.h>
+#include <UPnP/GetTime.h>
 #include <UPnP/Configuration.h>
 
 extern "C" {
@@ -41,18 +41,18 @@ const static int initial_delay = 1000;
 int max_count, timezone;
 char *ntp1, *ntp2;
 
-Time::Time() {
+GetTime::GetTime() {
   // DEBUG.println("Time CTOR");
   timeSource = TIME_SOURCE_NONE;
 }
 
-Time::~Time() {
+GetTime::~GetTime() {
 #ifdef DEBUG
   DEBUG.println("Time DTOR");
 #endif  
 }
 
-void Time::begin() {
+void GetTime::begin() {
   config = new Configuration("Time",
     new ConfigurationItem("maxcount", 10),
     new ConfigurationItem("ntp1", "ntp.scarlet.be"),
@@ -82,7 +82,7 @@ void Time::begin() {
  * Wait for a correct time, and report it.
  * Don't wait longer than ... for it.
  */
-time_t Time::getTime() {
+time_t GetTime::getTime() {
   time_t t;
   int count = 0;
 
