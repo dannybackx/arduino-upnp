@@ -65,13 +65,13 @@ void UPnPDisplay::begin() {
     return;	// Already been here
   state = UPNP_DISPLAY_STATE_OFF;
 
-  DEBUG.println("UPnPDispay begin()");
+  DEBUG.println("UPnPDisplay begin()");
   
   config = new Configuration("Display",
     new ConfigurationItem("message", ""),
     NULL);
 
-  DEBUG.printf("UPnPDispay ...\n");
+  DEBUG.printf("UPnPDisplay ...\n");
 
   init_OLED();
   reset_display();
