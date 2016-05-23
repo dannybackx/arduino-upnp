@@ -44,6 +44,7 @@ private:
   byte ReadRTC(struct tm &tm);
   uint8_t dec2bcd(uint8_t n);
   uint8_t bcd2dec(uint8_t n);
+  int inited;
 
 public:
   void begin();

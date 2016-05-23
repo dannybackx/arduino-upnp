@@ -30,6 +30,7 @@
 #define	DEBUG	Serial
 
 DS3231::DS3231() {
+  inited = 0;
   // DEBUG.println("DS3231 CTOR");
 }
 
@@ -41,11 +42,41 @@ DS3231::~DS3231() {
 
 void DS3231::begin() {
   // Wire.begin();
+
+  // Deal with i2c not being active yet ?
+  Wire.beginTransmission((uint8_t)DS3232RTC_I2C_ADDR);
+  int _error = Wire.endTransmission();
+  delay(100);
+  Wire.beginTransmission((uint8_t)DS3232RTC_I2C_ADDR);
+  _error = Wire.endTransmission();
+  if (_error != 0) {
+    delay(500);
+    Wire.beginTransmission((uint8_t)DS3232RTC_I2C_ADDR);
+    _error = Wire.endTransmission();
+    if (_error != 0) {
+      delay(500);
+      Wire.beginTransmission((uint8_t)DS3232RTC_I2C_ADDR);
+      _error = Wire.endTransmission();
+      if (_error != 0) {
+#ifdef DEBUG
+        DEBUG.println("DS3231 device not detected");
+#endif  
+        Serial.println("DS3231 device not detected");
+	inited = -1;	// Device not detected
+        return;
+      }
+    }
+  }
+
+  inited = 1;	// ok
 }
 
 /* Deal with Wire-based communication to DS3232 */
 byte DS3231::ReadRange(byte addr, byte *values, byte n)
 {
+  if (inited <= 0)
+    return 1;
+
   Wire.beginTransmission(DS3232RTC_I2C_ADDR);
   Wire.write(addr);
   if (byte e = Wire.endTransmission())
@@ -72,6 +103,9 @@ byte DS3231::ReadRange(byte addr, byte *values, byte n)
  */
 byte DS3231::ReadRTC(struct tm &tm)
 {
+  if (inited <= 0)
+    return 4;	// Unknown i2c error, probably device missing
+
   // Assume Wire.begin(); already called
   unsigned char values[7];
   int i;
@@ -126,13 +160,21 @@ void DS3231::test()
   struct tm tm;
   char error = ReadRTC(tm);
 
-  Serial.printf("DS3231 RTC : time is %s", asctime(&tm));
+  if (inited == 0)
+    begin();
+  if (inited < 0)
+    Serial.println("DS3231 device not responding");
+  else
+    Serial.printf("DS3231 RTC : time is %s", asctime(&tm));
   // SetRTC(tm);
   GetTemperature();
 }
 
 void DS3231::SetRTC(time_t now)
 {
+  if (inited <= 0)
+    return;
+
   struct tm *tmnow = localtime(&now);
 
   // Get the official stuff
@@ -159,6 +201,9 @@ void DS3231::SetRTC(time_t now)
 void DS3231::GetTemperature()
 {
   unsigned char values[4];
+
+  if (inited <= 0)
+    return;
 
   // values[0] = 0x11;	// Address
   char error = ReadRange(0x11, values, 2);
