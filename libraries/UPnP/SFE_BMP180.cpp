@@ -37,12 +37,31 @@ char SFE_BMP180::begin()
 	// Start up the Arduino's "wire" (I2C) library:
 	// Wire.begin();
 
+	// Deal with i2c not being active yet ?
+	Wire.beginTransmission(BMP180_ADDR);
+	_error = Wire.endTransmission();
+	delay(100);
+	Wire.beginTransmission(BMP180_ADDR);
+	_error = Wire.endTransmission();
+	if (_error != 0) {
+	  delay(500);
+	  Wire.beginTransmission(BMP180_ADDR);
+	  _error = Wire.endTransmission();
+	  if (_error != 0) {
+	    delay(500);
+	    Wire.beginTransmission(BMP180_ADDR);
+	    _error = Wire.endTransmission();
+	    if (_error != 0) {
+	      return 0;
+	    }
+	  }
+	}
+
 	// The BMP180 includes factory calibration data stored on the device.
 	// Each device has different numbers, these must be retrieved and
 	// used in the calculations when taking pressure measurements.
 
 	// Retrieve calibration data from device:
-	
 	if (readInt(0xAA,AC1) &&
 		readInt(0xAC,AC2) &&
 		readInt(0xAE,AC3) &&

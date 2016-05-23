@@ -146,13 +146,21 @@ void BMP180SensorService::begin() {
     NULL);
   UPnPService::begin(config);
   percentage = config->GetValue(percentageString);
+  name = config->GetStringValue("name");
 
 #ifdef DEBUG
   DEBUG.printf("BMP180SensorService::begin (%d %%)\n", percentage);
 #endif
 
   bmp = new SFE_BMP180();
-  char ok = bmp->begin();
+  char ok = bmp->begin();	// 0 return value is a problem
+  if (ok == 0) {
+    delete bmp;
+    bmp = 0;
+#ifdef DEBUG
+    DEBUG.println("No BMP180 detected");
+#endif
+  }
 }
 
 // Return true if a noticable difference
@@ -206,6 +214,8 @@ bool BMP180SensorService::Difference(float oldval, float newval) {
 void BMP180SensorService::poll() {
   bool diff = false, nan = false;
   
+  if (bmp == 0)
+    return;
   count++;
 
   oldTemperature = newTemperature;
