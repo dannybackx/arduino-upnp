@@ -2,7 +2,7 @@
  * ESP8266 Simple Service Discovery
  *
  * Copyright (c) 2015 Hristo Gochkov
- * Copyright (c) 2015 Danny Backx
+ * Copyright (c) 2015, 2016 Danny Backx
  * 
  * Original (Arduino) version by Filippo Sallemi, July 23, 2014.
  * Can be found at: https://github.com/nomadnt/uSSDP
@@ -61,18 +61,6 @@ class UPnPDevice {
     void setManufacturerURL(char *url);
     void setDeviceURN(char *urn);
 
-    /*
-    void setName(const String& name) { setName(name.c_str()); }
-    void setURL(const String& url) { setURL(url.c_str()); }
-    void setSchemaURL(const String& url) { setSchemaURL(url.c_str()); }
-    void setSerialNumber(const String& serialNumber) { setSerialNumber(serialNumber.c_str()); }
-    void setModelName(const String& name) { setModelName(name.c_str()); }
-    void setModelNumber(const String& num) { setModelNumber(num.c_str()); }
-    void setModelURL(const String& url) { setModelURL(url.c_str()); }
-    void setManufacturer(const String& name) { setManufacturer(name.c_str()); }
-    void setManufacturerURL(const String& url) { setManufacturerURL(url.c_str()); }
-    /* */
-
     void setPort(uint16_t port);
     uint16_t getPort();
 
@@ -110,14 +98,6 @@ class UPnPDevice {
     char *_modelURL;
     char *_deviceURN;
 
-    // char _schemaURL[UPnP_SCHEMA_URL_SIZE];
-    // char _friendlyName[UPnP_FRIENDLY_NAME_SIZE];
-    // char _serialNumber[UPnP_SERIAL_NUMBER_SIZE];
-    // char _presentationURL[UPnP_PRESENTATION_URL_SIZE];
-    // char _manufacturer[UPnP_MANUFACTURER_SIZE];
-    // char _manufacturerURL[UPnP_MANUFACTURER_URL_SIZE];
-    // char _modelURL[UPnP_MODEL_URL_SIZE];
-    // char _deviceURN[UPnP_MODEL_URL_SIZE];
 };
 
 #endif
