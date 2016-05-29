@@ -1,0 +1,19 @@
+Monitor messages in the UPnP multicast group :
+
+socat UDP4-RECVFROM:1900,ip-add-membership=239.255.255.250:0.0.0.0,fork -
+
+Send a message to UPnP via multicast :
+
+cat >x <<end
+NOTIFY * HTTP/1.1
+HOST: 239.255.255.250:1900
+NT: upnp:rootdevice
+NTS: ssdp:alive
+CACHE-CONTROL: max-age=1200
+SERVER: Arduino/1.0 UPNP/1.1 UPnP Motion Sensor Kit/32302000102
+USN: uuid:38323636-4558-4dda-9188-cda0e606724c
+LOCATION: http://192.168.1.99:80/this-is-fake-description.xml
+
+end
+cat x | socat - UDP4-DATAGRAM:239.255.255.250:1900,bind=:2900,ip-add-membership=239.255.255.250:eth0
+
