@@ -44,6 +44,7 @@ class BMP180SensorService : public UPnPService {
     const char *GetTemperature(), *GetPressure();
     const float GetFloatTemperature(), GetFloatPressure();
     void GetPressureHandler();
+    bool Works();
 
     void poll();            // periodically poll the sensor
     
@@ -57,6 +58,7 @@ class BMP180SensorService : public UPnPService {
     double newPressure, newTemperature;
     double oldPressure, oldTemperature;
     int percentage;	// How much of a difference before notify
+    char *name;
     SFE_BMP180 *bmp;
 
     void FloatToString(float f, char *s);

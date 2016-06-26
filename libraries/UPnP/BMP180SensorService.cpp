@@ -41,6 +41,7 @@ static void GetVersion();
 
 // Printf style template, parameters : serviceType, state
 static const char *gsh_template = "<u:GetStateResponse xmlns=\"%s\">\r\n<Temperature>%s</Temperature>\r\n<Pressure>%s</Pressure>\r\n</u:GetStateResponse>\r\n";
+static const char *empty_template = "<u:GetStateResponse xmlns=\"%s\">\r\n</u:GetStateResponse>\r\n";
 
 static const char *getStateXML = "<action>"
   "<name>getState</name>"
@@ -259,8 +260,8 @@ void BMP180SensorService::poll() {
 
   // Only do this if we really have non-nan values
   inited = true;
-    UpdateTemperature();
-    UpdatePressure();
+  UpdateTemperature();
+  UpdatePressure();
 
   if (Difference(oldTemperature, newTemperature)) {
     UpdateTemperature();
@@ -327,6 +328,15 @@ static void GetVersion() {
 
 // Example of a member function to handle UPnP requests : this can access stuff in the class
 void BMP180SensorService::GetPressureHandler() {
+  if (bmp == 0) {
+    int l = strlen(empty_template) + strlen(myServiceType);
+    char *tmp = (char *)malloc(l);
+    sprintf(tmp, empty_template, myServiceType);
+    HTTP.send(200, UPnPClass::mimeTypeXML, tmp);
+    free(tmp);
+    return;
+  }
+
   // Calculate buffer lengths
   int l2 = strlen(gsh_template) + strlen(myServiceType) + BMP180_STATE_LENGTH * 2,
       l1 = strlen(UPnPClass::envelopeHeader) + l2 + strlen(UPnPClass::envelopeTrailer) + 5;
@@ -361,9 +371,15 @@ void BMP180SensorService::FloatToString(float f, char *s) {
 }
 
 void BMP180SensorService::UpdateTemperature() {
-  FloatToString(newTemperature, temperature);
+  if (bmp)
+    FloatToString(newTemperature, temperature);
 }
 
 void BMP180SensorService::UpdatePressure() {
-  FloatToString(newPressure, pressure);
+  if (bmp)
+    FloatToString(newPressure, pressure);
+}
+
+bool BMP180SensorService::Works() {
+  return inited;
 }
